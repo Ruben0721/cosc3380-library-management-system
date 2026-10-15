@@ -1,10 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Library Management System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Library Database</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
 </head>
 <body>
+    <header>
+        <h1>Library Database</h1>
+        <p>Search and browse our book collection.</p>
+    </header>
+
+    <nav>
+        <a href="#home">Home</a>
+        <a href="#books">Books</a>
+        <a href="#about">About</a>
+    </nav>
+
+    <main>
+        <section id="home">
+            <h2>Welcome to the Library</h2>
+            <p>Find books by title or author and check their availability.</p>
+        </section>
+
+        <section id="books">
+            <h2>Book Collection</h2>
+
+            <label for="searchInput">Search books:</label>
+            <input
+                type="search"
+                id="searchInput"
+                placeholder="Enter a title or author"
+            >
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Book ID</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Author</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="bookTable">
+                        <tr>
+                            <td>1</td>
+                            <td>The Great Gatsby</td>
+                            <td>F. Scott Fitzgerald</td>
+                            <td>Available</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>To Kill a Mockingbird</td>
+                            <td>Harper Lee</td>
+                            <td>Checked Out</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>1984</td>
+                            <td>George Orwell</td>
+                            <td>Available</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p id="noResults" role="status" hidden>No matching books found.</p>
+        </section>
+
+        <section id="about">
+            <h2>About This Project</h2>
+            <p>
+                This student project demonstrates a library database interface
+                for viewing books and their availability.
+            </p>
+        </section>
+    </main>
+
+    <footer>
+        <p>Library Database | Student Project</p>
+    </footer>
 </body>
 </html>
