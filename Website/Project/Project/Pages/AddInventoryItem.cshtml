@@ -1,0 +1,73 @@
+﻿@page
+@model PrivacyModel
+@{
+    ViewData["Title"] = "Add Item";
+}
+
+
+<h1>Add Inventory Item</h1>
+
+<form method="get" class="mb-3">
+    <label asp-for="SelectedType" class="form-label">Type</label>
+    <select asp-for="SelectedType" class="form-select"
+            onchange="this.form.submit()">
+        <option value="">-- Select a type --</option>
+        <option value="book">Book</option>
+        <option value="headphones">HeadPhones</option>
+        <option value="media">Media</option>
+    </select>
+</form>
+@if (Model.SelectedType == "book")
+{
+    <form method="post" asp-page-handler="SaveBook" asp-route-selectedType="book">
+        <div asp-validation-summary="All" class="text-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Book.Title" class="form-label"></label>
+            <input asp-for="Book.Title" class="form-control" />
+            <span asp-validation-for="Book.Title" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.Status" class="form-label"></label>
+            <input asp-for="inventoryItem.Status" class="form-control" />
+            <span asp-validation-for="inventoryItem.Status" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Book.Author" class="form-label"></label>
+            <input asp-for="Book.Author" class="form-control" />
+            <span asp-validation-for="Book.Author" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Book.PublicationYear" class="form-label"></label>
+            <input asp-for="Book.PublicationYear" class="form-control" />
+            <span asp-validation-for="Book.PublicationYear" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Book.BookLanguage" class="form-label"></label>
+            <input asp-for="Book.BookLanguage" class="form-control" />
+            <span asp-validation-for="Book.BookLanguage" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Book.ISBN" class="form-label"></label>
+            <input asp-for="Book.ISBN" class="form-control" />
+            <span asp-validation-for="Book.ISBN" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.barcode" class="form-label">Barcode</label>
+            <input asp-for="inventoryItem.barcode" class="form-control" />
+            <span asp-validation-for="inventoryItem.barcode" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a asp-page="Inventory" class="btn btn-secondary">Cancel</a>
+    </form>
+}
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

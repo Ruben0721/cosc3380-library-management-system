@@ -1,0 +1,15 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Inventory";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Inventory</h1>
+    <ul>
+        @foreach (var p in Model.Inventory)
+        {
+            <li>@p.Name - @p.Type - @p.Status</li>
+        }
+    </ul>
+</div>
