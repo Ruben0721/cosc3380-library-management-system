@@ -11,7 +11,7 @@ namespace Project.Pages.Shared
         public string? Name { get; set; }
         [Required, StringLength(50)]
         public string? Status { get; set; }
-        [StringLength(50)]
+        [Required, StringLength(50)]
         public string? barcode { get; set; }
 
         public Books? Book { get; set; }
