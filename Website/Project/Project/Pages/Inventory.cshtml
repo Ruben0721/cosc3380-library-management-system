@@ -1,15 +1,24 @@
-﻿@page "/"
+﻿@page 
 @model IndexModel
 @{
     ViewData["Title"] = "Inventory";
 }
+<section class="hero">
+    <p class="eyebrow">Collection</p>
+    <h1>Inventory</h1>
+    <p>@Model.Inventory.Count items in the library</p>
+</section>
 
-<div class="text-center">
-    <h1 class="display-4">Inventory</h1>
-    <ul>
-        @foreach (var p in Model.Inventory)
-        {
-            <li>@p.Name - @p.Type - @p.Status</li>
-        }
-    </ul>
-</div>
+<table class="results">
+    <tr><th>Name</th><th>Type</th><th>Status</th><th>Barcode</th></tr>
+    @foreach (var item in Model.Inventory)
+    {
+        <tr>
+            <td>@item.Name</td>
+            <td>@item.Type</td>
+            <td>@item.Status</td>
+            <td>@item.barcode</td>
+        </tr>
+    }
+</table>
+

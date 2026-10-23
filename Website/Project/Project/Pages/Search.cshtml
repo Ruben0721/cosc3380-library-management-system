@@ -1,0 +1,69 @@
+@page "/"
+@model SearchModel
+
+<section class="hero">
+    <p class="eyebrow">Catalog</p>
+    <h1>Search the Library</h1>
+</section>
+
+<section class = "overview">
+    <form method="get" class = "search-form">
+        <select name="SelectedType">
+        <option value="">All items</option>
+        @foreach (var t in Model.Types)
+        {
+            <option value="@t.Value" selected="@(t.Value == Model.SelectedType)">@t.Label</option>
+        }
+        </select>
+        <input name="SearchTerm" value="@Model.SearchTerm"
+            placeholder="Name, type, author, ISBN or barcode" />
+        <button type="submit" class = "button button-primary">Search</button>
+    </form>
+    </section>
+
+@if (string.IsNullOrEmpty(Model.SearchTerm) && string.IsNullOrEmpty(Model.SelectedType))
+{
+    <section>
+        <h2>Browse by category</h2>
+        <div class="cards">
+            @foreach (var t in Model.Types)
+            {
+                <a class="card category-card" href="/?SelectedType=@t.Value">
+                    <h3>@t.Label</h3>
+                    <p>See all @t.Label.ToLower()</p>
+                </a>
+            }
+        </div>
+    </section>
+}
+
+@if (!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedType))
+{
+    if (Model.Results.Count == 0)
+    {
+        <p>No results found. Try another search or category "@Model.SearchTerm".</p>
+    }
+    else
+    {
+        <p>@Model.Results.Count results</p>
+       <table class="table results">
+        <tr><th>Type</th><th>Name</th><th>Details</th><th>Status</th><th>Barcode</th></tr>
+        @foreach (var i in Model.Results)
+        {
+            <tr>
+                <td>@i.Type</td>
+                <td>@i.Name</td>
+                <td>
+                    @if (i.Book != null) { @($"by {i.Book.Author}, ISBN {i.Book.ISBN}") }
+                    else if (i.Laptop != null) { @($"{i.Laptop.Brand} {i.Laptop.Model}") }
+                    else if (i.HeadPhone != null) { @($"{i.HeadPhone.Brand} {i.HeadPhone.Model}") }
+                    else if (i.Map != null) { @($"{i.Map.Region}, edition {i.Map.Edition}") }
+                    else if (i.Media != null) { @($"{i.Media.ItemType} · {i.Media.Genre} · {i.Media.Creator}") }
+                </td>
+                <td>@i.Status</td>
+                <td>@i.barcode</td>
+            </tr>
+         }
+        </table>
+    }
+}

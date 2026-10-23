@@ -35,6 +35,10 @@ namespace Project.Pages.Shared
             modelBuilder.Entity<Maps>().Property(x => x.ItemId).ValueGeneratedNever();
             modelBuilder.Entity<Maps>().HasOne(x => x.Inventory).WithOne(i => i.Map).HasForeignKey<Maps>(x => x.ItemId);
 
+            modelBuilder.Entity<HeadPhones>().ToTable("Headphones");
+            modelBuilder.Entity<Media>().ToTable("Media");
+            modelBuilder.Entity<LibraryUser>().ToTable("Libraryuser");
+            
             base.OnModelCreating(modelBuilder);
         }
 
