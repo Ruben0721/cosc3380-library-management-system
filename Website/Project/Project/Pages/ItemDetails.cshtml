@@ -1,0 +1,52 @@
+@page
+@model Project.Pages.ItemDetailsModel
+
+@{
+    var i = Model.Item!;
+}
+
+<section class="hero">
+    <p class="eyebrow">@i.Type</p>
+    <h1>@i.Name</h1>
+</section>
+
+<section class="overview">
+    <table class="hours">
+        <tr><th>Status</th><td>@i.Status</td></tr>
+        <tr><th>Barcode</th><td>@i.barcode</td></tr>
+
+        @if (i.Book != null)
+        {
+            <tr><th>Title</th><td>@i.Book.Title</td></tr>
+            <tr><th>Author</th><td>@i.Book.Author</td></tr>
+            <tr><th>Publication year</th><td>@i.Book.PublicationYear</td></tr>
+            <tr><th>Language</th><td>@i.Book.BookLanguage</td></tr>
+            <tr><th>ISBN</th><td>@i.Book.ISBN</td></tr>
+        }
+        @if (i.Laptop != null)
+        {
+            <tr><th>Brand</th><td>@i.Laptop.Brand</td></tr>
+            <tr><th>Model</th><td>@i.Laptop.Model</td></tr>
+            <tr><th>Serial number</th><td>@i.Laptop.SerialNumber</td></tr>
+        }
+        @if (i.HeadPhone != null)
+        {
+            <tr><th>Brand</th><td>@i.HeadPhone.Brand</td></tr>
+            <tr><th>Model</th><td>@i.HeadPhone.Model</td></tr>
+        }
+        @if (i.Map != null)
+        {
+            <tr><th>Title</th><td>@i.Map.Title</td></tr>
+            <tr><th>Region</th><td>@i.Map.Region</td></tr>
+            <tr><th>Edition</th><td>@i.Map.Edition</td></tr>
+        }
+        @if (i.Media != null)
+        {
+            <tr><th>Media type</th><td>@i.Media.ItemType</td></tr>
+            <tr><th>Genre</th><td>@i.Media.Genre</td></tr>
+            <tr><th>Creator</th><td>@i.Media.Creator</td></tr>
+        }
+    </table>
+</section>
+
+<p><a class="button" href="javascript:history.back()">← Back</a></p>

@@ -30,7 +30,14 @@
 
         <div class="mb-3">
             <label asp-for="inventoryItem.Status" class="form-label"></label>
-            <input asp-for="inventoryItem.Status" class="form-control" />
+            <select asp-for="inventoryItem.Status" class="form-select">
+                <option value="">-- Select a status --</option>
+                <option value="Available">Available</option>
+                <option value="Checked Out">Checked Out</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Under Repair">Under Repair</option>
+                <option value="Lost">Lost</option>
+            </select>
             <span asp-validation-for="inventoryItem.Status" class="text-danger"></span>
         </div>
 

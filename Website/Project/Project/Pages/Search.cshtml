@@ -41,7 +41,7 @@
 {
     if (Model.Results.Count == 0)
     {
-        <p>No results found. Try another search or category "@Model.SearchTerm".</p>
+        <p>No results found. Try another search or category.</p>
     }
     else
     {
@@ -50,9 +50,9 @@
         <tr><th>Type</th><th>Name</th><th>Details</th><th>Status</th><th>Barcode</th></tr>
         @foreach (var i in Model.Results)
         {
-            <tr>
-                <td>@i.Type</td>
-                <td>@i.Name</td>
+            <tr class="clickable-row" onclick="location.href='/ItemDetails?id=@i.Id'">
+            <td>@i.Type</td>
+            <td><a asp-page="/ItemDetails" asp-route-id="@i.Id">@i.Name</a></td>
                 <td>
                     @if (i.Book != null) { @($"by {i.Book.Author}, ISBN {i.Book.ISBN}") }
                     else if (i.Laptop != null) { @($"{i.Laptop.Brand} {i.Laptop.Model}") }

@@ -13,12 +13,12 @@
     <tr><th>Name</th><th>Type</th><th>Status</th><th>Barcode</th></tr>
     @foreach (var item in Model.Inventory)
     {
-        <tr>
-            <td>@item.Name</td>
-            <td>@item.Type</td>
-            <td>@item.Status</td>
-            <td>@item.barcode</td>
-        </tr>
+    <tr class="clickable-row" onclick="location.href='/ItemDetails?id=@item.Id'">
+    <td><a asp-page="/ItemDetails" asp-route-id="@item.Id">@item.Name</a></td>
+    <td>@item.Type</td>
+    <td>@item.Status</td>
+    <td>@item.barcode</td>
+</tr>
     }
 </table>
 
