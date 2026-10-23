@@ -10,6 +10,6 @@ namespace Project.Pages.Shared
         [Required, StringLength(50)]
         public string Model { get; set; }
 
-        public Inventory Inventory { get; set; }
+        public Inventory? Inventory { get; set; }
     }
 }

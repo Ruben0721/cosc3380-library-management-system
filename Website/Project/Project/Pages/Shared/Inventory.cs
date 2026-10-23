@@ -4,6 +4,7 @@ namespace Project.Pages.Shared
 {
     public class Inventory
     {
+        [Key]
         public int Id { get; set; }
         [Required, StringLength(50)]
         public string Type { get; set; }
@@ -17,5 +18,7 @@ namespace Project.Pages.Shared
         public Books? Book { get; set; }
         public HeadPhones? HeadPhone { get; set; }
         public Media? Media { get; set; }
+        public Laptops? Laptop { get; set; }
+        public Maps? Map { get; set; }
     }
 }
