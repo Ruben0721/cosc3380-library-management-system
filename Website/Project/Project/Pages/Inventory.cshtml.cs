@@ -16,15 +16,8 @@ namespace Project.Pages
         [BindProperty(SupportsGet = true)] public string? SelectedStatus { get; set; }
         [BindProperty(SupportsGet = true)] public string? Sort { get; set; }  
 
-        public List<(string Value, string Label)> Types { get; } = new()
-        {
-            ("book", "Book"), ("headphones", "HeadPhones"), ("media", "Media"),
-            ("laptop", "Laptop"), ("map", "Map")
-        };
-        public List<string> Statuses { get; } = new()
-        {
-            "Available", "Checked Out", "On Hold", "Under Repair", "Lost"
-        };
+        public List<(string Value, string Label)> Types => LibraryOptions.Types;
+        public List<string> Statuses => LibraryOptions.Statuses;
 
         public List<Inventory> Inventory { get; set; } = new();
 

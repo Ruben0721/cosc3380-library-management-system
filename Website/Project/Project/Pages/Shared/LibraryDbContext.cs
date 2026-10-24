@@ -84,7 +84,16 @@ namespace Project.Pages.Shared
         {
             return await Inventory.AsNoTracking().ToListAsync();
         }
-
+        public IQueryable<Inventory> InventoryWithDetails()
+                {
+                    return Inventory
+                        .AsNoTracking()
+                        .Include(i => i.Book)
+                        .Include(i => i.HeadPhone)
+                        .Include(i => i.Laptop)
+                        .Include(i => i.Map)
+                        .Include(i => i.Media);
+                }
         public async Task<Inventory> AddInvetoryItemAsync(Inventory item)
         {
             Inventory.Add(item);
