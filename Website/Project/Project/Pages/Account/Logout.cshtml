@@ -1,0 +1,20 @@
+@page
+@model Project.Pages.Account.LogoutModel
+
+@{
+    ViewData["Title"] = "Log out";
+}
+
+<h1 class="h2">Log out</h1>
+
+<p>Are you ready to end your session?</p>
+
+<form method="post">
+    <button type="submit" class="btn btn-primary">
+        Log out
+    </button>
+
+    <a asp-page="/Search" class="btn btn-outline-secondary">
+        Stay signed in
+    </a>
+</form>

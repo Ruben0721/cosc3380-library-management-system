@@ -1,0 +1,20 @@
+@page
+
+@{
+    ViewData["Title"] = "Access denied";
+    Response.StatusCode = 403;
+}
+
+<h1 class="h2">Access denied</h1>
+
+<p>
+    Your account does not have permission to access this page.
+</p>
+
+<p>
+    Inventory management is available to library staff and administrators.
+</p>
+
+<a asp-page="/Search" class="btn btn-primary">
+    Return to the catalog
+</a>

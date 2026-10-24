@@ -1,0 +1,76 @@
+@page
+@model Project.Pages.Account.RegisterModel
+
+@{
+    ViewData["Title"] = "Student registration";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="h2">Student registration</h1>
+
+        <p>Create an account to use the library as a student.</p>
+
+        @if (Model.ValidationMessage is not null)
+        {
+            <div class="alert alert-info" role="status">
+                @Model.ValidationMessage
+            </div>
+        }
+
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.FirstName" class="form-label"></label>
+                <input asp-for="Input.FirstName" class="form-control" autocomplete="given-name" />
+                <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.LastName" class="form-label"></label>
+                <input asp-for="Input.LastName" class="form-control" autocomplete="family-name" />
+                <span asp-validation-for="Input.LastName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.StudentId" class="form-label"></label>
+                <input asp-for="Input.StudentId" class="form-control" inputmode="numeric" maxlength="7" />
+                <span asp-validation-for="Input.StudentId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Email" class="form-label"></label>
+                <input asp-for="Input.Email" class="form-control" autocomplete="email" />
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Password" class="form-label"></label>
+                <input asp-for="Input.Password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Input.Password" class="text-danger"></span>
+                <div class="form-text">
+                    Use between 12 and 128 characters.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.ConfirmPassword" class="form-label"></label>
+                <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                Create student account
+            </button>
+        </form>
+        <p class="mt-3">
+            Already registered?
+            <a asp-page="/Account/Login">Log in</a>
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

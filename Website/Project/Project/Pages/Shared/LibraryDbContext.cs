@@ -7,11 +7,14 @@ namespace Project.Pages.Shared
         public LibraryDbContext(DbContextOptions<LibraryDbContext> options) : base(options) { }
         public DbSet<Inventory> Inventory => Set<Inventory>();
         public DbSet<LibraryUser> LibraryUsers => Set<LibraryUser>();
+        public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
+        public DbSet<Student> Students => Set<Student>();
         public DbSet<Books> Books => Set<Books>();
         public DbSet<HeadPhones> HeadPhones => Set<HeadPhones>();
         public DbSet<Media> Medias => Set<Media>();
         public DbSet<Laptops> Laptops => Set<Laptops>();
         public DbSet<Maps> Maps => Set<Maps>();
+        public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
