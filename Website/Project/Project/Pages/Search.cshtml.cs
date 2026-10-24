@@ -23,7 +23,7 @@ namespace Project.Pages
     {
         Types = new()
         {
-            ("book", "Book"),
+            ("book", "Book"), //(value, label)
             ("headphones", "HeadPhones"),
             ("media", "Media"),
             ("laptop", "Laptop"),
@@ -55,22 +55,22 @@ namespace Project.Pages
                 || (i.barcode != null && i.barcode.Contains(s))
 
                 || (i.Book != null && (i.Book.Title.Contains(s)
-                                    || i.Book.Author.Contains(s)
-                                    || i.Book.ISBN.Contains(s)))
+                || i.Book.Author.Contains(s)
+                || i.Book.ISBN.Contains(s)))
 
                 || (i.HeadPhone != null && (i.HeadPhone.Brand.Contains(s)
-                                       || i.HeadPhone.Model.Contains(s)))
+                || i.HeadPhone.Model.Contains(s)))
 
                 || (i.Laptop != null && ((i.Laptop.Brand != null && i.Laptop.Brand.Contains(s))
-                                    || (i.Laptop.Model != null && i.Laptop.Model.Contains(s))
-                                    || (i.Laptop.SerialNumber != null && i.Laptop.SerialNumber.Contains(s))))
+                || (i.Laptop.Model != null && i.Laptop.Model.Contains(s))
+                || (i.Laptop.SerialNumber != null && i.Laptop.SerialNumber.Contains(s))))
 
                 || (i.Map != null && ((i.Map.Title != null && i.Map.Title.Contains(s))
-                                || (i.Map.Region != null && i.Map.Region.Contains(s))))
+                || (i.Map.Region != null && i.Map.Region.Contains(s))))
 
                 || (i.Media != null && (i.Media.ItemType.Contains(s)
-                                    || (i.Media.Genre != null && i.Media.Genre.Contains(s))
-                                    || (i.Media.Creator != null && i.Media.Creator.Contains(s)))));
+                || (i.Media.Genre != null && i.Media.Genre.Contains(s))
+                || (i.Media.Creator != null && i.Media.Creator.Contains(s)))));
         }
 
         Results = await query

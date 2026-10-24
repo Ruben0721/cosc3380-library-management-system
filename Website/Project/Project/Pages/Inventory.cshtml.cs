@@ -11,13 +11,50 @@ namespace Project.Pages
         private readonly LibraryDbContext _db;
         public IndexModel(LibraryDbContext db) => _db = db;
 
+ 
+        [BindProperty(SupportsGet = true)] public string? SelectedType { get; set; }
+        [BindProperty(SupportsGet = true)] public string? SelectedStatus { get; set; }
+        [BindProperty(SupportsGet = true)] public string? Sort { get; set; }  
+
+        public List<(string Value, string Label)> Types { get; } = new()
+        {
+            ("book", "Book"), ("headphones", "HeadPhones"), ("media", "Media"),
+            ("laptop", "Laptop"), ("map", "Map")
+        };
+        public List<string> Statuses { get; } = new()
+        {
+            "Available", "Checked Out", "On Hold", "Under Repair", "Lost"
+        };
+
         public List<Inventory> Inventory { get; set; } = new();
+
+        public int TotalItems { get; set; }
 
         public async Task OnGetAsync()
         {
-            Inventory = await _db.GetInventoryAsync();
+            
+            TotalItems = await _db.Inventory.CountAsync();
+
+            var query = _db.Inventory.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrEmpty(SelectedType))
+                query = query.Where(i => i.Type == SelectedType);
+
+            if (!string.IsNullOrEmpty(SelectedStatus))
+                query = query.Where(i => i.Status == SelectedStatus);
+
+            query = Sort switch
+            {
+                "type"   => query.OrderBy(i => i.Type).ThenBy(i => i.Name),
+                "status" => query.OrderBy(i => i.Status).ThenBy(i => i.Name),
+                "newest" => query.OrderByDescending(i => i.Id),
+                _        => query.OrderBy(i => i.Name)
+            };
+
+            Inventory = await query.ToListAsync();
+        }
         }
 
         
     }
-}
+

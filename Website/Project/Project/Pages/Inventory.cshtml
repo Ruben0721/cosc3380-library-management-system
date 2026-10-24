@@ -6,8 +6,40 @@
 <section class="hero">
     <p class="eyebrow">Collection</p>
     <h1>Inventory</h1>
-    <p>@Model.Inventory.Count items in the library</p>
+    <p>Showing @Model.Inventory.Count of @Model.TotalItems items</p>
 </section>
+
+<section class="overview">
+    <form method="get" class="search-form">
+
+
+        <select name="SelectedType">
+            <option value="">All types</option>
+            @foreach (var t in Model.Types)
+            {
+                <option value="@t.Value" selected="@(t.Value == Model.SelectedType)">@t.Label</option>
+            }
+        </select>
+
+        <select name="SelectedStatus">
+            <option value="">All statuses</option>
+            @foreach (var s in Model.Statuses)
+            {
+                <option value="@s" selected="@(s == Model.SelectedStatus)">@s</option>
+            }
+        </select>
+
+        <select name="Sort">
+            <option value="">Sort by name</option>
+            <option value="type" selected="@(Model.Sort == "type")">Sort by type</option>
+            <option value="status" selected="@(Model.Sort == "status")">Sort by status</option>
+            <option value="newest" selected="@(Model.Sort == "newest")">Newest first</option>
+        </select>
+
+        <button type="submit" class="button button-primary">Apply</button>
+    </form>
+</section>
+
 
 <table class="results">
     <tr><th>Name</th><th>Type</th><th>Status</th><th>Barcode</th></tr>

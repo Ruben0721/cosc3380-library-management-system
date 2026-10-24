@@ -17,6 +17,9 @@ body {
     background: var(--cream);
     line-height: 1.6;
 }
+body {
+  margin-bottom: 60px;
+}
 
 a {
     color: var(--green);
@@ -81,7 +84,7 @@ main {
 }
 
 .hero {
-    padding: 50px 0 65px;
+    padding: 50px 0;
     max-width: 800px;
 }
 
@@ -131,9 +134,9 @@ h1 {
     color: var(--green);
 }
 
-section {
-    margin-bottom: 48px;
-}
+ section {
+    margin-bottom: 25px;
+} 
 
 h2 {
     font-family: Georgia, serif;
@@ -215,6 +218,8 @@ h3 {
 }
 
 footer {
+    margin-top: 40px;
+  
     padding: 25px;
     text-align: center;
     background: var(--green);
