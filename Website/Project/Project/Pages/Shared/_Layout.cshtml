@@ -25,14 +25,14 @@
                             <a class="nav-link text-dark" asp-page="/Search">Home</a>
                         </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-page="/Report">
-                                Reports
-                            </a>
-                        </li>
-                        
                         @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
                         {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-page="/Report">
+                                    Report
+                                </a>
+                            </li>
+                            
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-page="/Inventory">
                                     Inventory

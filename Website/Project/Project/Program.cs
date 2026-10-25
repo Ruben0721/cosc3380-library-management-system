@@ -16,6 +16,10 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage(
         "/AddInventoryItem",
         "LibraryStaff");
+
+    options.Conventions.AuthorizePage(
+        "/Report",
+        "LibraryStaff");
 });
 
 builder.Services
