@@ -1,0 +1,168 @@
+@page
+@model Project.Pages.Staff.UsersModel
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<div class="mb-4">
+    <a asp-page="/Staff/Index">Back to Staff Dashboard</a>
+
+    <h1 class="mt-3">User Management</h1>
+
+    <p class="text-muted">
+        View library borrowers and their website account status.
+    </p>
+    <a class="btn btn-outline-primary" asp-page="/Staff/Directory">
+        Staff &amp; Faculty Directory
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success" role="status">
+        @Model.StatusMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+
+<form method="get" class="row g-2 mb-4">
+    <div class="col-md-8">
+        <label asp-for="Search" class="form-label">
+            Name, login email, or borrower ID
+        </label>
+
+        <input asp-for="Search" class="form-control" maxlength="100" />
+
+        <span asp-validation-for="Search" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-primary">
+            Search
+        </button>
+
+        <a asp-page="/Staff/Users" class="btn btn-outline-secondary">
+            Clear
+        </a>
+    </div>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <p>Please correct the search above.</p>
+}
+else if (Model.Borrowers.Count == 0)
+{
+    <div class="alert alert-info">
+        No borrowers matched your search.
+    </div>
+}
+else
+{
+    @if (Model.HasMoreResults)
+    {
+        <div class="alert alert-info">
+            Showing the first 100 borrowers.
+            Narrow your search to find a specific person.
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <caption>
+                Borrower status and website login status are separate.
+            </caption>
+
+            <thead>
+                <tr>
+                    <th scope="col">Borrower ID</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Login Email</th>
+                    <th scope="col">Account Role</th>
+                    <th scope="col">Borrower Status</th>
+                    <th scope="col">Website Login</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var borrower in Model.Borrowers)
+                {
+                    <tr>
+                        <td>@borrower.LibraryUserId</td>
+                        <td>@borrower.FullName</td>
+                        <td>@(borrower.Email ?? "No login account")</td>
+                        <td>@(borrower.Role ?? "—")</td>
+
+                        <td>
+                            <div class="mb-2">
+                                @(borrower.BorrowerIsActive ? "Active" : "Inactive")
+                            </div>
+
+                            @if (borrower.CanManage)
+                            {
+                                <form method="post" asp-page="/Staff/Users" asp-page-handler="SetBorrowerStatus">
+                                    <input type="hidden" name="libraryUserId" value="@borrower.LibraryUserId" />
+
+                                    <input type="hidden" name="isActive" value="@(borrower.BorrowerIsActive ? "false" : "true")" />
+
+                                    <input type="hidden" name="Search" value="@Model.Search" />
+
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        @(borrower.BorrowerIsActive
+                                            ? "Deactivate borrower"
+                                            : "Activate borrower")
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Protected account</span>
+                            }
+                        </td>
+
+                        <td>
+                            @if (borrower.AccountId == null)
+                            {
+                                <span>No login account</span>
+                            }
+                            else
+                            {
+                                <div class="mb-2">
+                                    @(borrower.LoginIsEnabled == true ? "Enabled" : "Disabled")
+                                </div>
+
+                                @if (borrower.CanManage)
+                                {
+                                    <form method="post" asp-page="/Staff/Users" asp-page-handler="SetLoginStatus">
+                                        <input type="hidden" name="libraryUserId" value="@borrower.LibraryUserId" />
+
+                                        <input type="hidden" name="isEnabled"
+                                               value="@(borrower.LoginIsEnabled == true ? "false" : "true")" />
+
+                                        <input type="hidden" name="Search" value="@Model.Search" />
+
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            @(borrower.LoginIsEnabled == true
+                                                ? "Disable login"
+                                                : "Enable login")
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Protected account</span>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

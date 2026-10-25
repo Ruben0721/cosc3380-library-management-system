@@ -15,6 +15,7 @@ namespace Project.Pages.Shared
         public DbSet<Laptops> Laptops => Set<Laptops>();
         public DbSet<Maps> Maps => Set<Maps>();
         public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
+        public DbSet<FacultyMember> FacultyMembers => Set<FacultyMember>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

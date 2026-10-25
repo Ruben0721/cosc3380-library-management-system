@@ -84,7 +84,7 @@ namespace Project.Pages.Account
 
             try
             {
-                // An existing student must not be claimed through public signup.
+                // cannot use existing student info
                 bool studentExists = await _db.Students
                     .AnyAsync(s => s.StudentId == Input.StudentId);
 
@@ -111,11 +111,9 @@ namespace Project.Pages.Account
                     return Page();
                 }
 
-                // Everything below must succeed together.
                 await using var transaction =
                     await _db.Database.BeginTransactionAsync();
 
-                // 1. Create the borrower.
                 var borrower = new LibraryUser
                 {
                     FullName =
@@ -126,10 +124,10 @@ namespace Project.Pages.Account
 
                 _db.LibraryUsers.Add(borrower);
 
-                // MySQL generates the borrower's ID during this save.
+                // MySQL generates the ID
                 await _db.SaveChangesAsync();
 
-                // 2. Create the student using that generated ID.
+                // create the student using that generated ID
                 var student = new Student
                 {
                     StudentId = Input.StudentId,
@@ -140,7 +138,7 @@ namespace Project.Pages.Account
                     LibraryUserId = borrower.LibraryUserId
                 };
 
-                // 3. Create the login account using the same borrower ID.
+                // create the login account using the same ID
                 var account = new UserAccount
                 {
                     Email = email,
@@ -161,7 +159,7 @@ namespace Project.Pages.Account
 
                 await _db.SaveChangesAsync();
 
-                // Make all three records permanent together.
+                // all 3 records together
                 await transaction.CommitAsync();
 
                 ValidationMessage =
@@ -174,7 +172,6 @@ namespace Project.Pages.Account
                 when (ex.InnerException is MySqlException mysql &&
                       mysql.Number == 1062)
             {
-                // A duplicate can still occur if two submissions arrive together.
                 ModelState.AddModelError(
                     string.Empty,
                     "Unable to register with those details. " +

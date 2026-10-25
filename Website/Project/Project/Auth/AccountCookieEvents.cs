@@ -83,8 +83,7 @@ namespace Project.Auth
                     ex,
                     "Unable to revalidate the signed-in account.");
 
-                // If current access cannot be verified,
-                // do not continue using the old permissions.
+                // If current access cannot be verified,do not continue using the old permissions
                 await EndSessionAsync(context);
             }
         }

@@ -29,13 +29,11 @@ namespace Project.Auth
                 account.Role == "Staff" ||
                 account.Role == "Admin";
 
-            // Staff/Admin accounts must link to an employee.
             if (staffRole && !account.StaffId.HasValue)
             {
                 return false;
             }
 
-            // Any linked employee must exist and be active.
             if (account.StaffId.HasValue)
             {
                 return await db.StaffMembers

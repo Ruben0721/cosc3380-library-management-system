@@ -78,7 +78,7 @@ namespace Project.Pages.Account
                 await using var transaction =
                     await _db.Database.BeginTransactionAsync();
 
-                // Lock this account row while checking/updating its counter.
+                // Lock this account row while checking/updating its counter
                 var matches = await _db.UserAccounts
                     .FromSqlInterpolated(
                         $@"SELECT *
@@ -98,7 +98,7 @@ namespace Project.Pages.Account
 
                 DateTime now = DateTime.UtcNow;
 
-                // An active lockout rejects even the correct password.
+                // active lockout rejects correct password aswell
                 if (account.LockoutUntilUtc.HasValue &&
                     account.LockoutUntilUtc.Value > now)
                 {
@@ -106,7 +106,7 @@ namespace Project.Pages.Account
                     return Page();
                 }
 
-                // An expired lockout starts a fresh set of attempts.
+                // expired lockout starts a fresh set of attempts
                 if (account.LockoutUntilUtc.HasValue)
                 {
                     account.FailedLoginAttempts = 0;
@@ -137,7 +137,7 @@ namespace Project.Pages.Account
                     return Page();
                 }
 
-                // A successful login clears previous failures.
+                // a successful login clears previous failures
                 account.FailedLoginAttempts = 0;
                 account.LockoutUntilUtc = null;
 

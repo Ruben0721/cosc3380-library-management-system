@@ -1,0 +1,177 @@
+@page
+@model Project.Pages.Staff.DirectoryModel
+@{
+    ViewData["Title"] = "Staff & Faculty Directory";
+}
+
+<div class="mb-4">
+    <a asp-page="/Staff/Users">Back to User Management</a>
+
+    <h1 class="mt-3">Staff &amp; Faculty Directory</h1>
+
+    <p class="text-muted">
+        Find staff and faculty records and review their login status.
+    </p>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <a class="btn btn-primary" asp-page="/Staff/ManagePerson" asp-route-Kind="Staff">
+        New Staff / Admin
+    </a>
+
+    <a class="btn btn-primary" asp-page="/Staff/ManagePerson" asp-route-Kind="Faculty">
+        New Faculty
+    </a>
+</div>
+
+<form method="get" class="row g-2 mb-4">
+    <div class="col-md-8">
+        <label asp-for="Search" class="form-label">
+            Name, login email, Staff ID, or Faculty ID
+        </label>
+
+        <input asp-for="Search" class="form-control" maxlength="100" />
+
+        <span asp-validation-for="Search" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-4 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-primary">
+            Search
+        </button>
+
+        <a asp-page="/Staff/Directory" class="btn btn-outline-secondary">
+            Clear
+        </a>
+    </div>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <p>Please correct the search above.</p>
+}
+else
+{
+    var sections = new[]
+    {
+        new
+        {
+            Title = "Staff",
+            Rows = Model.StaffRows,
+            HasMore = Model.MoreStaff
+        },
+        new
+        {
+            Title = "Faculty",
+            Rows = Model.FacultyRows,
+            HasMore = Model.MoreFaculty
+        }
+    };
+
+    foreach (var section in sections)
+    {
+        <section class="mb-5">
+            <h2>@(section.Title)</h2>
+
+            @if (section.HasMore)
+            {
+                <div class="alert alert-info">
+                    Showing the first 100 matching records.
+                    Narrow your search to find a specific person.
+                </div>
+            }
+
+            @if (section.Rows.Count == 0)
+            {
+                <p class="text-muted">
+                    No matching @(section.Title.ToLowerInvariant()) records.
+                </p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <caption>
+                            @(section.Title) directory.
+                            Login enabled status does not include
+                            temporary failed-login lockouts.
+                        </caption>
+
+                        <thead>
+                            <tr>
+                                <th scope="col">Record ID</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Job Title / Position</th>
+                                <th scope="col">Login Email</th>
+                                <th scope="col">Website Role</th>
+                                <th scope="col">Website Login</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var person in section.Rows)
+                            {
+                                <tr>
+                                    <td>@person.RecordId</td>
+
+                                    <td>
+                                        <div>@person.FullName</div>
+
+                                        @if (person.StaffIsActive.HasValue)
+                                        {
+                                            <small class="text-muted">
+                                                Employee:
+                                                @(person.StaffIsActive.Value
+                                                    ? "Active"
+                                                    : "Inactive")
+                                            </small>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        @(string.IsNullOrWhiteSpace(person.Position)
+                                            ? "Not recorded"
+                                            : person.Position)
+                                    </td>
+
+                                    <td>
+                                        @(person.LoginEmail ?? "No login account")
+                                    </td>
+
+                                    <td>
+                                        @(person.AccountRole ?? "—")
+                                    </td>
+
+                                    <td>
+                                        @if (person.AccountId == null)
+                                        {
+                                            <span>No login account</span>
+                                        }
+                                        else
+                                        {
+                                            <span>
+                                                @(person.LoginIsEnabled == true
+                                                    ? "Enabled"
+                                                    : "Disabled")
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-sm btn-outline-primary" asp-page="/Staff/ManagePerson"
+                                           asp-route-Kind="@(person.StaffId.HasValue ? "Staff" : "Faculty")"
+                                           asp-route-Id="@person.RecordId">
+                                            @(person.AccountId == null
+                                                ? "Edit / Add Login"
+                                                : "Edit")
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+}

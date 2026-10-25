@@ -28,20 +28,8 @@
                         @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-page="/Report">
-                                    Report
-                                </a>
-                            </li>
-                            
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-page="/Inventory">
-                                    Inventory
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-page="/AddInventoryItem">
-                                    Add Item
+                                <a class="nav-link text-dark" asp-page="/Staff/Index">
+                                    Staff Dashboard
                                 </a>
                             </li>
                         }

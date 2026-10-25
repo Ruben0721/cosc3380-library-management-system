@@ -1,0 +1,201 @@
+@page
+@model Project.Pages.Staff.ManagePersonModel
+@{
+    ViewData["Title"] = Model.IsNew
+        ? $"Create {Model.Kind}"
+        : $"Edit {Model.Kind}";
+}
+
+<a asp-page="/Staff/Directory">
+    Back to Staff &amp; Faculty Directory
+</a>
+
+<h1 class="mt-3">@ViewData["Title"]</h1>
+
+@if (!Model.IsNew)
+{
+    <p class="text-muted">
+        @Model.Kind record ID: @Model.Id
+    </p>
+}
+
+@if (!string.IsNullOrEmpty(Model.SavedMessage))
+{
+    <div class="alert alert-success" role="status">
+        @Model.SavedMessage
+    </div>
+}
+
+<form method="post" asp-page="/Staff/ManagePerson">
+    <input type="hidden" asp-for="Kind" />
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="ExpectedAccountId" />
+
+    <div asp-validation-summary="All"
+         class="text-danger mb-3"></div>
+
+    <fieldset class="mb-4">
+        <legend class="h4">Person Details</legend>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Input.FirstName"
+                       class="form-label"></label>
+                <input asp-for="Input.FirstName"
+                       class="form-control" />
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Input.LastName"
+                       class="form-label"></label>
+                <input asp-for="Input.LastName"
+                       class="form-control" />
+            </div>
+
+            @if (!Model.IsStaff && Model.IsNew)
+            {
+                <div class="col-md-6">
+                    <label asp-for="Input.FacultyId"
+                           class="form-label"></label>
+                    <input asp-for="Input.FacultyId"
+                           class="form-control"
+                           maxlength="7" />
+                    <div class="form-text">
+                        Enter the person's existing university Faculty ID.
+                    </div>
+                </div>
+            }
+
+            <div class="col-md-6">
+                <label asp-for="Input.Position"
+                       class="form-label"></label>
+                <input asp-for="Input.Position"
+                       class="form-control"
+                       maxlength="@(Model.IsStaff ? 30 : 50)" />
+            </div>
+
+            @if (Model.IsStaff)
+            {
+                <div class="col-md-6">
+                    <label asp-for="Input.StartDate"
+                           class="form-label"></label>
+                    <input asp-for="Input.StartDate"
+                           type="date"
+                           class="form-control" />
+                </div>
+            }
+            else
+            {
+                <div class="col-md-6">
+                    <label asp-for="Input.RentalLimit"
+                           class="form-label"></label>
+                    <input asp-for="Input.RentalLimit"
+                           class="form-control"
+                           min="0" />
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Input.WaitlistLimit"
+                           class="form-label"></label>
+                    <input asp-for="Input.WaitlistLimit"
+                           class="form-control"
+                           min="0" />
+                </div>
+
+                <div class="col-12 form-text">
+                    Use the limits agreed by your team.
+                    A blank limit is stored as NULL; zero is stored as zero.
+                </div>
+            }
+        </div>
+    </fieldset>
+
+    <fieldset class="mb-4">
+        <legend class="h4">
+            @(Model.NeedsLogin ? "Create Login" : "Login Details")
+        </legend>
+
+        @if (Model.NeedsLogin)
+        {
+            <p>
+                Saving will create a login linked to this person.
+            </p>
+        }
+        else
+        {
+            <p>
+                The existing password and login-enabled status
+                will be preserved.
+            </p>
+        }
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Input.Email"
+                       class="form-label"></label>
+                <input asp-for="Input.Email"
+                       class="form-control"
+                       autocomplete="off" />
+            </div>
+
+            @if (Model.IsStaff)
+            {
+                <div class="col-md-6">
+                    <label asp-for="Input.WebsiteRole"
+                           class="form-label"></label>
+                    <select asp-for="Input.WebsiteRole"
+                            class="form-select">
+                        <option value="Staff">Staff</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                    <div class="form-text">
+                        Both roles have the same management permissions.
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="col-md-6">
+                    <p class="mt-4">Website role: Faculty</p>
+                </div>
+            }
+
+            @if (Model.NeedsLogin)
+            {
+                <div class="col-md-6">
+                    <label asp-for="Input.Password"
+                           class="form-label"></label>
+                    <input asp-for="Input.Password"
+                           class="form-control"
+                           autocomplete="new-password" />
+                    <div class="form-text">
+                        Use 12–128 characters.
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Input.ConfirmPassword"
+                           class="form-label"></label>
+                    <input asp-for="Input.ConfirmPassword"
+                           class="form-control"
+                           autocomplete="new-password" />
+                </div>
+            }
+        </div>
+    </fieldset>
+
+    <div class="d-flex gap-2 mb-4">
+        <button type="submit" class="btn btn-primary">
+            @(Model.NeedsLogin ? "Save and Create Login" : "Save Changes")
+        </button>
+
+        <a asp-page="/Staff/Directory"
+           class="btn btn-outline-secondary">
+            Cancel
+        </a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
