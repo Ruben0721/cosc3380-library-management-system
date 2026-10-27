@@ -32,8 +32,7 @@ namespace Project.Pages
             ("map", "Map")
         };
 
-        if (string.IsNullOrEmpty(SearchTerm) && string.IsNullOrEmpty(SelectedType))
-            return;
+        SearchTerm = SearchTerm?.Trim();
 
         var query = _db.Inventory
             .AsNoTracking()
