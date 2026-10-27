@@ -1,0 +1,83 @@
+@page
+@model Project.Pages.CheckoutActivityModel
+
+<section class="hero">
+    <p class="eyebrow">Activity</p>
+    <h1>Checkout Activity</h1>
+    <p>How many people checked out items in a time period.</p>
+</section>
+
+<section class="overview">
+    <form method="get" class="search-form">
+        <label>From
+            <input type="date" name="From" value="@Model.From?.ToString("yyyy-MM-dd")" />
+        </label>
+        <label>To
+            <input type="date" name="To" value="@Model.To?.ToString("yyyy-MM-dd")" />
+        </label>
+
+        <select name="BorrowerType">
+            <option value="student" selected="@(Model.BorrowerType == "student")">Students</option>
+            <option value="faculty" selected="@(Model.BorrowerType == "faculty")">Faculty</option>
+            <option value="all" selected="@(Model.BorrowerType == "all")">Everyone</option>
+        </select>
+
+        <button type="submit" class="button button-primary">Show</button>
+    </form>
+</section>
+
+<section>
+   
+    <div class="print-only report-title">Checkout Activity Report</div>
+    <div class="print-only report-subtitle">
+        @(Model.BorrowerType == "student" ? "Students" : Model.BorrowerType == "faculty" ? "Faculty" : "Everyone")
+        · @Model.From?.ToString("MMM d, yyyy") to @Model.To?.ToString("MMM d, yyyy")
+    </div>
+
+    <p style="font-size: 18px;">
+        <strong>@Model.BorrowerCount</strong>
+        @(Model.BorrowerType == "student" ? "students" : Model.BorrowerType == "faculty" ? "faculty members" : "people")
+        made <strong>@Model.TotalCheckouts</strong> checkouts between
+        @Model.From?.ToString("MMM d, yyyy") and @Model.To?.ToString("MMM d, yyyy").
+    </p>
+
+    @if (Model.Rows.Count > 0)
+    {
+        <table class="results">
+            <tr><th>Name</th><th>Type</th><th class="num">Checkouts</th></tr>
+            @foreach (var r in Model.Rows)
+            {
+                <tr class="clickable-row"
+                    onclick="location.href='/BorrowerRentals?UserId=@r.LibraryUserId&From=@(Model.From?.ToString("yyyy-MM-dd"))&To=@(Model.To?.ToString("yyyy-MM-dd"))&BorrowerType=@Model.BorrowerType'">
+                    <td>
+                        <a asp-page="/BorrowerRentals"
+                           asp-route-UserId="@r.LibraryUserId"
+                           asp-route-From="@Model.From?.ToString("yyyy-MM-dd")"
+                           asp-route-To="@Model.To?.ToString("yyyy-MM-dd")"
+                           asp-route-BorrowerType="@Model.BorrowerType">@r.Name</a>
+                    </td>
+                    <td>@r.Type</td>
+                    <td class="num">@r.Checkouts</td>
+                </tr>
+            }
+            <tr class="total">
+                <td colspan="2"><strong>Total</strong></td>
+                <td class="num"><strong>@Model.TotalCheckouts</strong></td>
+            </tr>
+        </table>
+    }
+    else
+    {
+        <p>No checkouts in this period.</p>
+    }
+
+  
+    <div class="print-only report-footer">
+        Generated @DateTime.Now.ToString("M/d/yyyy h:mm:ss tt")
+    </div>
+
+    
+    <p class="no-print" style="margin-top: 16px;">
+        <button class="button" onclick="window.print()">Print / Save as PDF</button>
+    </p>
+</section>

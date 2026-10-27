@@ -24,6 +24,12 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage(
         "/Report",
         "LibraryStaff");
+    options.Conventions.AuthorizePage(
+        "/CheckoutActivity", 
+        "LibraryStaff");
+    options.Conventions.AuthorizePage(
+        "/BorrowerRentals",
+         "LibraryStaff");
 });
 
 builder.Services

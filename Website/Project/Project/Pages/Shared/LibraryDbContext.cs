@@ -16,9 +16,11 @@ namespace Project.Pages.Shared
         public DbSet<Maps> Maps => Set<Maps>();
         public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
         public DbSet<FacultyMember> FacultyMembers => Set<FacultyMember>();
+        public DbSet<Rental> Rentals => Set<Rental>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Rental>().ToTable("Rentals");
             modelBuilder.Entity<Books>().HasKey(x => x.ItemId);
             modelBuilder.Entity<Books>().Property(x => x.ItemId).ValueGeneratedNever();
             modelBuilder.Entity<Books>().HasOne(x => x.Inventory).WithOne(i => i.Book).HasForeignKey<Books>(x => x.ItemId);

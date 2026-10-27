@@ -216,6 +216,7 @@
 
         footer {
             padding: 25px;
+            position: static;
             text-align: center;
             background: var(--green);
             color: white;

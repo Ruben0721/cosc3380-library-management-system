@@ -1,0 +1,71 @@
+@page
+@model Project.Pages.BorrowerRentalsModel
+
+<section class="hero">
+    <p class="eyebrow">Checkout Activity</p>
+    <h1>@Model.BorrowerName</h1>
+
+    @if (Model.StudentInfo != null)
+{
+    <p>
+        <strong>Student</strong>
+        · ID @Model.StudentInfo.StudentId
+        @if (!string.IsNullOrEmpty(Model.StudentInfo.Email))
+        {
+            <span>· @Model.StudentInfo.Email</span>
+        }
+        · Registered @Model.StudentInfo.RegistrationDate.ToString("MMM d, yyyy")
+    </p>
+}
+    else if (Model.FacultyInfo != null)
+    {
+        <p>
+        <strong>Faculty</strong>
+        · ID @Model.FacultyInfo.FacultyId
+        @if (!string.IsNullOrEmpty(Model.FacultyInfo.Position))
+        {
+            <span>· @Model.FacultyInfo.Position</span>
+        }
+        · Rental limit @(Model.FacultyInfo.RentalLimit?.ToString() ?? "—")
+        </p>
+    }
+
+    <p>
+        @Model.Rows.Count checkouts between
+        @Model.From?.ToString("MMM d, yyyy") and @Model.To?.ToString("MMM d, yyyy")
+    </p>
+</section>
+
+@if (Model.Rows.Count == 0)
+{
+    <p>No checkouts in this period.</p>
+}
+else
+{
+    <table class="results">
+        <tr><th>Item</th><th>Type</th><th>Checked out</th><th>Due</th><th>Status</th></tr>
+        @foreach (var r in Model.Rows)
+        {
+            var overdue = r.ReturnedDate == null && r.DueDate != null && r.DueDate < DateTime.Today;
+
+            <tr>
+                <td><a asp-page="/ItemDetails" asp-route-id="@r.ItemId">@r.ItemName</a></td>
+                <td>@r.ItemType</td>
+                <td>@r.StartDate.ToString("MMM d, yyyy")</td>
+                <td>@r.DueDate?.ToString("MMM d, yyyy")</td>
+                <td>
+                    @if (r.ReturnedDate != null) { <span>Returned @r.ReturnedDate.Value.ToString("MMM d, yyyy")</span> }
+                    else if (overdue) { <strong style="color: #a12b2b;">Overdue</strong> }
+                    else { <span>Checked out</span> }
+                </td>
+            </tr>
+        }
+    </table>
+}
+
+<p style="margin-top: 20px;">
+    <a class="button" asp-page="/CheckoutActivity"
+       asp-route-From="@Model.From?.ToString("yyyy-MM-dd")"
+       asp-route-To="@Model.To?.ToString("yyyy-MM-dd")"
+       asp-route-BorrowerType="@Model.BorrowerType">← Back to Checkout Activity</a>
+</p>

@@ -28,5 +28,7 @@ namespace Project.Pages.Shared
         public string? Email { get; set; }
 
         public int LibraryUserId { get; set; }
+        public string? AcademicLevel { get; set; }
+    public string? EnrollStatus { get; set; }
     }
 }
