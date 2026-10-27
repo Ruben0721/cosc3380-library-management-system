@@ -1,0 +1,50 @@
+@page
+@model SearchModel
+@{
+    ViewData["Title"] = "Library Catalog";
+}
+<h1>Library Catalog</h1>
+<p>Browse the collection or search by name, author, ISBN, or barcode.</p>
+<form method="get" class="mb-4">
+    <label for="SelectedType">Item type</label>
+    <select id="SelectedType" asp-for="SelectedType" class="form-select mb-2">
+        <option value="">All items</option>
+        @foreach (var t in Model.Types)
+        {
+            <option value="@t.Value">@t.Label</option>
+        }
+    </select>
+    <label for="SearchTerm">Search the catalog</label>
+    <input id="SearchTerm" asp-for="SearchTerm" class="form-control mb-2"
+           placeholder="Name, type, author, ISBN or barcode" />
+    <button type="submit" class="btn btn-primary">Search</button>
+    <a asp-page="/Search" class="btn btn-outline-secondary">Show all items</a>
+</form>
+
+@if (Model.Results.Count == 0)
+{
+    <p role="status">No items found. Try another search, or check with library staff that inventory has been added.</p>
+}
+else
+{
+    <p role="status">@Model.Results.Count items found</p>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr><th scope="col">Type</th><th scope="col">Name</th><th scope="col">Details</th><th scope="col">Status</th><th scope="col">Barcode</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Results)
+            {
+                <tr>
+                    <td>@item.Type</td>
+                    <td><a asp-page="/ItemDetails" asp-route-id="@item.Id">@item.Name</a></td>
+                    <td>@item.DetailsSummary()</td>
+                    <td>@item.Status</td>
+                    <td>@item.barcode</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
