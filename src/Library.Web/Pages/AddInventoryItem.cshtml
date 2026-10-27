@@ -1,0 +1,268 @@
+@page
+@using Project.Models
+@using Project.Configuration
+@model AddInventoryItemModel
+@{
+    ViewData["Title"] = "Add Item";
+}
+
+
+<h1>Add Inventory Item</h1>
+
+<form method="get" class="mb-3">
+    <label asp-for="SelectedType" class="form-label">Type</label>
+    <select asp-for="SelectedType" class="form-select"
+            onchange="this.form.submit()">
+        <option value="">-- Select a type --</option>
+        @foreach (var t in LibraryOptions.Types)
+        {
+            <option value="@t.Value">@t.Label</option>
+        }
+    </select>
+</form>
+@if (Model.SelectedType == "book")
+{
+    <form method="post" asp-page-handler="SaveBook" asp-route-selectedType="book">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <input type="hidden" asp-for="ItemId" />
+        <input type="hidden" asp-for="SelectedType" />
+        <div class="mb-3">
+            <label asp-for="Book.Title" class="form-label"></label>
+            <input asp-for="Book.Title" class="form-control" />
+            <span asp-validation-for="Book.Title" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.Status" class="form-label"></label>
+            <select asp-for="inventoryItem.Status" class="form-select">
+                <option value="">-- Select a status --</option>
+                @foreach (var s in LibraryOptions.Statuses)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <span asp-validation-for="inventoryItem.Status" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Book.Author" class="form-label"></label>
+            <input asp-for="Book.Author" class="form-control" />
+            <span asp-validation-for="Book.Author" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Book.PublicationYear" class="form-label"></label>
+            <input asp-for="Book.PublicationYear" class="form-control" />
+            <span asp-validation-for="Book.PublicationYear" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Book.BookLanguage" class="form-label"></label>
+            <input asp-for="Book.BookLanguage" class="form-control" />
+            <span asp-validation-for="Book.BookLanguage" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Book.ISBN" class="form-label"></label>
+            <input asp-for="Book.ISBN" class="form-control" />
+            <span asp-validation-for="Book.ISBN" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.barcode" class="form-label">Barcode</label>
+            <input asp-for="inventoryItem.barcode" class="form-control" />
+            <span asp-validation-for="inventoryItem.barcode" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a asp-page="Inventory" class="btn btn-secondary">Cancel</a>
+    </form>
+}
+@if (Model.SelectedType == "media")
+{
+    <form method="post" asp-page-handler="SaveMedia" asp-route-selectedType="media">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <input type="hidden" asp-for="ItemId" />
+        <input type="hidden" asp-for="SelectedType" />
+        <div class="mb-3">
+            <label asp-for="inventoryItem.Name" class="form-label"></label>
+            <input asp-for="inventoryItem.Name" class="form-control" />
+            <span asp-validation-for="inventoryItem.Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Media.ItemType" class="form-label"></label>
+            <input asp-for="Media.ItemType" class="form-control" />
+            <span asp-validation-for="Media.ItemType" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.Status" class="form-label"></label>
+            <select asp-for="inventoryItem.Status" class="form-select">
+                <option value="">-- Select a status --</option>
+                @foreach (var s in LibraryOptions.Statuses)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <span asp-validation-for="inventoryItem.Status" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Media.Genre" class="form-label"></label>
+            <input asp-for="Media.Genre" class="form-control" />
+            <span asp-validation-for="Media.Genre" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Media.Creator" class="form-label"></label>
+            <input asp-for="Media.Creator" class="form-control" />
+            <span asp-validation-for="Media.Creator" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.barcode" class="form-label">Barcode</label>
+            <input asp-for="inventoryItem.barcode" class="form-control" />
+            <span asp-validation-for="inventoryItem.barcode" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a asp-page="Inventory" class="btn btn-secondary">Cancel</a>
+    </form>
+}
+@if (Model.SelectedType == "laptop")
+{
+    <form method="post" asp-page-handler="SaveLaptop" asp-route-selectedType="laptop">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <input type="hidden" asp-for="ItemId" />
+        <input type="hidden" asp-for="SelectedType" />
+        <div class="mb-3">
+            <label asp-for="Laptop.Brand" class="form-label"></label>
+            <input asp-for="Laptop.Brand" class="form-control" />
+            <span asp-validation-for="Laptop.Brand" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.Status" class="form-label"></label>
+            <select asp-for="inventoryItem.Status" class="form-select">
+                <option value="">-- Select a status --</option>
+                @foreach (var s in LibraryOptions.Statuses)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <span asp-validation-for="inventoryItem.Status" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Laptop.Model" class="form-label"></label>
+            <input asp-for="Laptop.Model" class="form-control" />
+            <span asp-validation-for="Laptop.Model" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Laptop.SerialNumber" class="form-label"></label>
+            <input asp-for="Laptop.SerialNumber" class="form-control" />
+            <span asp-validation-for="Laptop.SerialNumber" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.barcode" class="form-label">Barcode</label>
+            <input asp-for="inventoryItem.barcode" class="form-control" />
+            <span asp-validation-for="inventoryItem.barcode" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a asp-page="Inventory" class="btn btn-secondary">Cancel</a>
+    </form>
+}
+@if (Model.SelectedType == "headphones")
+{
+    <form method="post" asp-page-handler="SaveHeadphone" asp-route-selectedType="headphone">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <input type="hidden" asp-for="ItemId" />
+        <input type="hidden" asp-for="SelectedType" />
+        <div class="mb-3">
+            <label asp-for="Headphone.Brand" class="form-label"></label>
+            <input asp-for="Headphone.Brand" class="form-control" />
+            <span asp-validation-for="Headphone.Brand" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.Status" class="form-label"></label>
+            <select asp-for="inventoryItem.Status" class="form-select">
+                <option value="">-- Select a status --</option>
+                @foreach (var s in LibraryOptions.Statuses)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <span asp-validation-for="inventoryItem.Status" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Headphone.Model" class="form-label"></label>
+            <input asp-for="Headphone.Model" class="form-control" />
+            <span asp-validation-for="Headphone.Model" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.barcode" class="form-label">Barcode</label>
+            <input asp-for="inventoryItem.barcode" class="form-control" />
+            <span asp-validation-for="inventoryItem.barcode" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a asp-page="Inventory" class="btn btn-secondary">Cancel</a>
+    </form>
+}
+@if (Model.SelectedType == "map")
+{
+    <form method="post" asp-page-handler="SaveMap" asp-route-selectedType="map">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <input type="hidden" asp-for="ItemId" />
+        <input type="hidden" asp-for="SelectedType" />
+
+        <div class="mb-3">
+            <label asp-for="Map.Title" class="form-label"></label>
+            <input asp-for="Map.Title" class="form-control" />
+            <span asp-validation-for="Map.Title" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.Status" class="form-label"></label>
+            <select asp-for="inventoryItem.Status" class="form-select">
+                <option value="">-- Select a status --</option>
+                @foreach (var s in LibraryOptions.Statuses)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <span asp-validation-for="inventoryItem.Status" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Map.Region" class="form-label"></label>
+            <input asp-for="Map.Region" class="form-control" />
+            <span asp-validation-for="Map.Region" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Map.Edition" class="form-label"></label>
+            <input asp-for="Map.Edition" class="form-control" type="number" />
+            <span asp-validation-for="Map.Edition" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="inventoryItem.barcode" class="form-label">Barcode</label>
+            <input asp-for="inventoryItem.barcode" class="form-control" />
+            <span asp-validation-for="inventoryItem.barcode" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a asp-page="Inventory" class="btn btn-secondary">Cancel</a>
+    </form>
+}
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
