@@ -27,6 +27,7 @@ namespace Project.Models
         [StringLength(255)]
         public string? Email { get; set; }
 
+        public int RentalLimit { get; set; } = 5;
         public int LibraryUserId { get; set; }
         public string? AcademicLevel { get; set; }
     public string? EnrollStatus { get; set; }

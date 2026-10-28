@@ -1,0 +1,45 @@
+@page
+@model Project.Pages.CheckoutModel
+
+<section class="hero">
+    <p class="eyebrow">Checkout</p>
+    <h1>@Model.Item!.Name</h1>
+    <p>@Model.Item.Type · Barcode @Model.Item.barcode · Status: @Model.Item.Status</p>
+</section>
+
+
+<section class="overview">
+    <form method="get" class="search-form">
+        <input type="hidden" name="ItemId" value="@Model.ItemId" />
+        <input name="BorrowerId" value="@Model.BorrowerId" placeholder="Student ID or Faculty ID" />
+        <button type="submit" class="button">Look up</button>
+    </form>
+</section>
+
+@if (Model.Error != null)
+{
+    <p style="color: #a12b2b; font-weight: bold; margin-top: 16px;">@Model.Error</p>
+}
+
+
+@if (Model.CanCheckout)
+{
+    <section class="card" style="margin-top: 20px; padding: 24px;">
+        <h3>@Model.BorrowerName</h3>
+        <p>
+            @Model.BorrowerType · ID @Model.BorrowerId<br />
+            Currently has @Model.ActiveRentals of @Model.Limit items allowed<br />
+            Due date: <strong>@Model.DueDate.ToString("MMM d, yyyy")</strong>
+        </p>
+
+        <form method="post">
+            <input type="hidden" name="ItemId" value="@Model.ItemId" />
+            <input type="hidden" name="BorrowerId" value="@Model.BorrowerId" />
+            <button type="submit" class="button button-primary">Confirm checkout</button>
+        </form>
+    </section>
+}
+
+<p style="margin-top: 20px;">
+    <a class="button" asp-page="/ItemDetails" asp-route-id="@Model.ItemId">← Back to item</a>
+</p>
