@@ -1,0 +1,277 @@
+@page
+@model Project.Pages.CollectionPerformanceModel
+
+<section class="hero">
+    <p class="eyebrow">Reports</p>
+    <h1>Circulation &amp; Collection Performance</h1>
+    <p>Which titles are in demand, which are waitlisted, and which are underused.</p>
+</section>
+
+<section class="overview">
+    <form method="get" class="search-form">
+        <label>From <input type="date" name="From" value="@Model.From?.ToString("yyyy-MM-dd")" /></label>
+        <label>To <input type="date" name="To" value="@Model.To?.ToString("yyyy-MM-dd")" /></label>
+
+        <select name="Category">
+            <option value="">All categories</option>
+            @foreach (var t in Model.Types)
+            {
+                <option value="@t.Value" selected="@(t.Value == Model.Category)">@t.Label</option>
+            }
+        </select>
+
+        <select name="DemandFilter">
+            <option value="">Any demand</option>
+            @foreach (var d in new[] { "High", "Medium", "Low", "Never borrowed" })
+            {
+                <option value="@d" selected="@(d == Model.DemandFilter)">@d</option>
+            }
+        </select>
+
+        <button type="submit" class="button button-primary">View Report</button>
+    </form>
+</section>
+
+<section>
+    <div class="print-only report-title">Circulation &amp; Collection Performance Report</div>
+    <div class="print-only report-subtitle">
+        @Model.From?.ToString("MMM d, yyyy") to @Model.To?.ToString("MMM d, yyyy")
+        · @(string.IsNullOrEmpty(Model.Category) ? "All categories" : Model.Category)
+    </div>
+
+    @{
+        double change = Model.PrevCheckouts == 0 ? 0
+            : 100.0 * (Model.TotalCheckouts - Model.PrevCheckouts) / Model.PrevCheckouts;
+
+        // Message for empty title lists: explain when the demand filter is the reason
+        string EmptyMessage(string normal) => string.IsNullOrEmpty(Model.DemandFilter)
+            ? normal
+            : $"No titles with \"{Model.DemandFilter}\" demand in this section for this period.";
+    }
+
+    @if (!string.IsNullOrEmpty(Model.DemandFilter))
+    {
+        <p class="no-print" style="font-weight: bold;">
+            Title lists are filtered to "@Model.DemandFilter" demand.
+            <a asp-page="/CollectionPerformance"
+               asp-route-From="@Model.From?.ToString("yyyy-MM-dd")"
+               asp-route-To="@Model.To?.ToString("yyyy-MM-dd")"
+               asp-route-Category="@Model.Category">Show all demand levels</a>
+        </p>
+    }
+
+    <!-- 1. Summary metrics -->
+    <h2>Summary</h2>
+    <table class="results">
+        <tr><th>Metric</th><th class="num">Value</th></tr>
+        <tr><td>Titles in collection</td><td class="num">@Model.TotalTitles</td></tr>
+        <tr><td>Copies in collection</td><td class="num">@Model.TotalCopies</td></tr>
+        <tr>
+            <td>Total checkouts</td>
+            <td class="num">
+                @Model.TotalCheckouts
+                @if (Model.PrevCheckouts > 0)
+                {
+                    <span>(@(change >= 0 ? "+" : "")@change.ToString("0")% vs. previous period)</span>
+                }
+            </td>
+        </tr>
+        <tr><td>Unique borrowers</td><td class="num">@Model.UniqueBorrowers</td></tr>
+        <tr><td>Utilization rate (copies borrowed at least once)</td><td class="num">@Model.UtilizationPct.ToString("0")%</td></tr>
+        <tr><td>Average checkouts per copy</td><td class="num">@Model.AvgPerItem.ToString("0.00")</td></tr>
+        @if (!string.IsNullOrEmpty(Model.Category))
+        {
+            <tr><td>Library-wide average checkouts per copy (benchmark)</td><td class="num">@Model.LibraryAvgPerCopy.ToString("0.00")</td></tr>
+        }
+        <tr><td>Members currently waiting for items</td><td class="num">@Model.TotalWaiting</td></tr>
+    </table>
+    <p style="font-size: 13px;">
+        Previous period used for comparison: @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy")
+    </p>
+
+    <!-- 2. Findings -->
+    <h2 style="margin-top: 32px;">Findings &amp; recommendations</h2>
+    <ul>
+        @foreach (var r in Model.Recommendations)
+        {
+            <li>@r</li>
+        }
+    </ul>
+
+    <!-- 3. Performance by category -->
+    <h2 style="margin-top: 32px;">Performance by category</h2>
+    <table class="results">
+        <tr>
+            <th>Category</th><th class="num">Copies</th><th class="num">Available</th>
+            <th class="num">Under repair</th><th class="num">Checkouts</th>
+            <th class="num">Per copy</th><th class="num">Never borrowed</th>
+            <th class="num">vs. previous</th><th>Demand</th>
+        </tr>
+        @foreach (var c in Model.Categories)
+        {
+            double? catChange = c.PrevCheckouts == 0 ? null : 100.0 * (c.Checkouts - c.PrevCheckouts) / c.PrevCheckouts;
+            <tr>
+                <td>@c.Label</td>
+                <td class="num">@c.Items</td>
+                <td class="num">@c.Available</td>
+                <td class="num">@c.UnderRepair</td>
+                <td class="num">@c.Checkouts</td>
+                <td class="num">@c.PerItem.ToString("0.00")</td>
+                <td class="num">@c.NeverPct.ToString("0")%</td>
+                <td class="num">@(catChange == null ? "—" : (catChange >= 0 ? "+" : "") + catChange.Value.ToString("0") + "%")</td>
+                <td><strong>@c.Demand</strong></td>
+            </tr>
+        }
+        <tr class="total">
+            <td>Total</td>
+            <td class="num">@Model.TotalCopies</td>
+            <td class="num">@Model.Categories.Sum(c => c.Available)</td>
+            <td class="num">@Model.Categories.Sum(c => c.UnderRepair)</td>
+            <td class="num">@Model.TotalCheckouts</td>
+            <td class="num">@Model.AvgPerItem.ToString("0.00")</td>
+            <td class="num">@((100 - Model.UtilizationPct).ToString("0"))%</td>
+            <td class="num">@(Model.PrevCheckouts == 0 ? "—" : (change >= 0 ? "+" : "") + change.ToString("0") + "%")</td>
+            <td></td>
+        </tr>
+    </table>
+
+    <!-- 4. Monthly trend -->
+    <h2 style="margin-top: 32px;">Monthly checkouts</h2>
+    <table class="results">
+        <tr>
+            <th>Category</th>
+            @foreach (var m in Model.Months)
+            {
+                <th class="num">@DateTime.Parse(m + "-01").ToString("MMM yyyy")</th>
+            }
+        </tr>
+        @foreach (var row in Model.Trend)
+        {
+            <tr>
+                <td>@row.Key</td>
+                @foreach (var m in Model.Months)
+                {
+                    <td class="num">@row.Value[m]</td>
+                }
+            </tr>
+        }
+        <tr class="total">
+            <td>Total</td>
+            @foreach (var m in Model.Months)
+            {
+                <td class="num">@Model.Trend.Values.Sum(v => v[m])</td>
+            }
+        </tr>
+    </table>
+
+    <!-- 5. Most in-demand titles -->
+    <h2 style="margin-top: 32px;">Most in-demand titles</h2>
+    @if (Model.TopTitles.Count == 0)
+    {
+        <p>@EmptyMessage("No checkouts in this period.")</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Title</th><th>Category</th><th class="num">Copies</th><th class="num">Available</th>
+                <th class="num">Checkouts</th><th class="num">Per copy</th><th class="num">Waiting</th><th>Demand</th>
+            </tr>
+            @foreach (var t in Model.TopTitles)
+            {
+                <tr>
+                    <td><a asp-page="/Search" asp-route-SearchTerm="@t.Title">@t.Title</a></td>
+                    <td>@t.Category</td>
+                    <td class="num">@t.Copies</td>
+                    <td class="num">@t.Available</td>
+                    <td class="num">@t.Checkouts</td>
+                    <td class="num">@t.PerCopy.ToString("0.0")</td>
+                    <td class="num">@t.Waiting</td>
+                    <td>@t.Demand</td>
+                </tr>
+            }
+        </table>
+    }
+
+    <!-- 6. Most waitlisted titles -->
+    <h2 style="margin-top: 32px;">Most waitlisted titles</h2>
+    @if (Model.MostWaitlisted.Count == 0)
+    {
+        <p>@EmptyMessage("No holds placed in this period.")</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Title</th><th>Category</th><th class="num">Copies</th><th class="num">Available</th>
+                <th class="num">Holds in period</th><th class="num">Waiting now</th>
+            </tr>
+            @foreach (var t in Model.MostWaitlisted)
+            {
+                <tr>
+                    <td><a asp-page="/Search" asp-route-SearchTerm="@t.Title">@t.Title</a></td>
+                    <td>@t.Category</td>
+                    <td class="num">@t.Copies</td>
+                    <td class="num">@t.Available</td>
+                    <td class="num">@t.HoldsInPeriod</td>
+                    <td class="num">@t.Waiting</td>
+                </tr>
+            }
+        </table>
+    }
+
+    <!-- 7. Least borrowed titles -->
+    <h2 style="margin-top: 32px;">Least borrowed titles</h2>
+    @if (Model.LeastBorrowed.Count == 0)
+    {
+        <p>@EmptyMessage("No checkouts in this period.")</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Title</th><th>Category</th><th class="num">Copies</th>
+                <th class="num">Checkouts</th><th class="num">Per copy</th><th>Demand</th>
+            </tr>
+            @foreach (var t in Model.LeastBorrowed)
+            {
+                <tr>
+                    <td><a asp-page="/Search" asp-route-SearchTerm="@t.Title">@t.Title</a></td>
+                    <td>@t.Category</td>
+                    <td class="num">@t.Copies</td>
+                    <td class="num">@t.Checkouts</td>
+                    <td class="num">@t.PerCopy.ToString("0.0")</td>
+                    <td>@t.Demand</td>
+                </tr>
+            }
+        </table>
+    }
+
+    <!-- 8. Never borrowed titles -->
+    <h2 style="margin-top: 32px;">Titles not borrowed in this period (@Model.NeverBorrowed.Count)</h2>
+    @if (Model.NeverBorrowed.Count == 0)
+    {
+        <p>@EmptyMessage("Every title was borrowed at least once.")</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr><th>Title</th><th>Category</th><th class="num">Copies</th><th class="num">Available</th></tr>
+            @foreach (var t in Model.NeverBorrowed)
+            {
+                <tr>
+                    <td><a asp-page="/Search" asp-route-SearchTerm="@t.Title">@t.Title</a></td>
+                    <td>@t.Category</td>
+                    <td class="num">@t.Copies</td>
+                    <td class="num">@t.Available</td>
+                </tr>
+            }
+        </table>
+    }
+
+    <div class="print-only report-footer">Generated @DateTime.Now.ToString("M/d/yyyy h:mm:ss tt")</div>
+
+    <p class="no-print" style="margin-top: 16px;">
+        <button class="button" onclick="window.print()">Print / Save as PDF</button>
+    </p>
+</section>

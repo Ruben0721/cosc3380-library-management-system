@@ -1,0 +1,80 @@
+@page
+@model Project.Pages.Staff.ReturnsModel
+
+<p class="no-print"><a asp-page="/Staff/Index">&larr; Back to dashboard</a></p>
+
+<section class="hero">
+    <p class="eyebrow">Circulation</p>
+    <h1>Return an Item</h1>
+    <p>Check in a borrowed item and record its condition. Fines, repair requests and the item's status update automatically.</p>
+</section>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <p class="alert alert-success" style="padding: 12px; border-left: 4px solid #2e7d32; background: #edf7ee;">@Model.Message</p>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <p class="alert alert-error" style="padding: 12px; border-left: 4px solid #c62828; background: #fdecea;">@Model.Error</p>
+}
+
+<section class="overview">
+    <form method="get" class="search-form">
+        <input type="text" name="Search" value="@Model.Search" placeholder="Borrower or item name" />
+        <label><input type="checkbox" name="OverdueOnly" value="true" checked="@Model.OverdueOnly" /> Overdue only</label>
+        <button type="submit" class="button button-primary">Search</button>
+        @if (!string.IsNullOrEmpty(Model.Search) || Model.OverdueOnly)
+        {
+            <a asp-page="/Staff/Returns">Clear</a>
+        }
+    </form>
+</section>
+
+<section>
+    <h2>Items currently checked out (@Model.Loans.Count)</h2>
+
+    @if (Model.Loans.Count == 0)
+    {
+        <p>No checked-out items match your search.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Item</th><th>Category</th><th>Borrower</th><th>Checked out</th><th>Due</th>
+                <th class="num">Days overdue</th><th class="num">Fine if returned now</th><th>Condition</th><th></th>
+            </tr>
+            @foreach (var l in Model.Loans)
+            {
+                <tr>
+                    <td>@l.ItemName</td>
+                    <td>@l.Category</td>
+                    <td>@l.Borrower</td>
+                    <td>@l.StartDate.ToString("MMM d, yyyy")</td>
+                    <td>@(l.DueDate?.ToString("MMM d, yyyy") ?? "—")</td>
+                    <td class="num">@(l.DaysOverdue > 0 ? l.DaysOverdue.ToString() : "—")</td>
+                    <td class="num">@(l.EstimatedFine > 0 ? l.EstimatedFine.ToString("C") : "—")</td>
+                    <td colspan="2">
+                        <form method="post" asp-page-handler="Return" style="display: flex; gap: 8px; align-items: center;"
+                              onsubmit="return this.condition.value === 'Good' || confirm('Record this item as ' + this.condition.value + '? A fee will be charged.');">
+                            <input type="hidden" name="rentalId" value="@l.RentalId" />
+                            <input type="hidden" name="Search" value="@Model.Search" />
+                            <input type="hidden" name="OverdueOnly" value="@Model.OverdueOnly.ToString().ToLower()" />
+                            <select name="condition">
+                                @foreach (var c in Project.Pages.Staff.ReturnsModel.Conditions)
+                                {
+                                    <option value="@c">@c</option>
+                                }
+                            </select>
+                            <button type="submit" class="button button-primary">Return</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </table>
+        <p style="font-size: 13px;">
+            Good: item goes back to Available. Damaged: damage fee + repair request, item goes Under Repair.
+            Lost: replacement cost is charged and the item is marked Lost. Overdue fines are added automatically.
+        </p>
+    }
+</section>

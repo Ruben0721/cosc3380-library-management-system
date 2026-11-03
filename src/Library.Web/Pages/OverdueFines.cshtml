@@ -1,0 +1,315 @@
+@page
+@model Project.Pages.OverdueFinesModel
+@using Project.Configuration
+
+<section class="hero">
+    <p class="eyebrow">Reports</p>
+    <h1>Overdue Returns &amp; Fines</h1>
+    <p>How often items come back late, who is returning late, and how much of the fines are being collected.</p>
+</section>
+
+<section class="overview">
+    <form method="get" class="search-form">
+        <label>From <input type="date" name="From" value="@Model.From?.ToString("yyyy-MM-dd")" /></label>
+        <label>To <input type="date" name="To" value="@Model.To?.ToString("yyyy-MM-dd")" /></label>
+
+        <select name="Category">
+            <option value="">All categories</option>
+            @foreach (var t in LibraryOptions.Types)
+            {
+                <option value="@t.Value" selected="@(t.Value == Model.Category)">@t.Label</option>
+            }
+        </select>
+
+        <select name="BorrowerType">
+            <option value="">All borrowers</option>
+            @foreach (var b in new[] { "Student", "Faculty" })
+            {
+                <option value="@b" selected="@(b == Model.BorrowerType)">@b</option>
+            }
+        </select>
+
+        <button type="submit" class="button button-primary">View Report</button>
+    </form>
+</section>
+
+<section>
+    <div class="print-only report-title">Overdue Returns &amp; Fines Report</div>
+    <div class="print-only report-subtitle">
+        Loans due @Model.From?.ToString("MMM d, yyyy") to @Model.To?.ToString("MMM d, yyyy")
+        · @(string.IsNullOrEmpty(Model.Category) ? "All categories" : Model.Category)
+        · @(string.IsNullOrEmpty(Model.BorrowerType) ? "All borrowers" : Model.BorrowerType)
+    </div>
+
+    @{
+        double rateChange = Model.LateRate - Model.PrevLateRate;
+    }
+
+  
+    <h2>Summary</h2>
+    <table class="results">
+        <tr><th>Metric</th><th class="num">Value</th></tr>
+        <tr><td>Loans due in this period</td><td class="num">@Model.LoansDue</td></tr>
+        <tr><td>Returned on time</td><td class="num">@Model.ReturnedOnTime</td></tr>
+        <tr><td>Returned late</td><td class="num">@Model.ReturnedLate</td></tr>
+        <tr><td>Still out and overdue</td><td class="num">@Model.StillOutOverdue</td></tr>
+        <tr>
+            <td>Late-return rate</td>
+            <td class="num">
+                @Model.LateRate.ToString("0")%
+                @if (Model.PrevLateRate > 0)
+                {
+                    <span>(@(rateChange >= 0 ? "+" : "")@rateChange.ToString("0") points vs. previous period)</span>
+                }
+            </td>
+        </tr>
+        <tr><td>Average days late (late loans)</td><td class="num">@Model.AvgDaysLate.ToString("0.0")</td></tr>
+        <tr><td>Fines assessed</td><td class="num">@Model.FinesAssessed.ToString("C")</td></tr>
+        <tr><td>Fines paid</td><td class="num">@Model.FinesPaid.ToString("C")</td></tr>
+        <tr><td>Fines outstanding</td><td class="num">@Model.FinesOutstanding.ToString("C")</td></tr>
+        <tr><td>Collection rate</td><td class="num">@Model.CollectionRate.ToString("0")%</td></tr>
+        <tr><td>Payments received in this period</td><td class="num">@Model.PaymentsReceived.ToString("C")</td></tr>
+    </table>
+    <p style="font-size: 13px;">
+        Previous period used for comparison: @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy").
+        A loan is late if it was returned after its due date or is still out past it.
+    </p>
+
+    
+    <h2 style="margin-top: 32px;">Findings &amp; recommendations</h2>
+    <ul>
+        @foreach (var r in Model.Recommendations)
+        {
+            <li>@r</li>
+        }
+    </ul>
+
+    
+    <h2 style="margin-top: 32px;">Items overdue right now (@Model.OverdueNow.Count)</h2>
+    @if (Model.OverdueNow.Count == 0)
+    {
+        <p>No items are overdue right now.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Item</th><th>Category</th><th>Borrower</th><th>Borrower type</th>
+                <th>Due date</th><th class="num">Days overdue</th><th class="num">Fine so far</th>
+            </tr>
+            @foreach (var o in Model.OverdueNow)
+            {
+                <tr>
+                    <td>@o.ItemName</td>
+                    <td>@o.Category</td>
+                    <td>@o.Borrower</td>
+                    <td>@o.BorrowerType</td>
+                    <td>@o.DueDate.ToString("MMM d, yyyy")</td>
+                    <td class="num">@o.DaysOverdue</td>
+                    <td class="num">@o.EstimatedFine.ToString("C")</td>
+                </tr>
+            }
+            <tr class="total">
+                <td colspan="5">Total</td>
+                <td class="num"></td>
+                <td class="num">@Model.OverdueNow.Sum(o => o.EstimatedFine).ToString("C")</td>
+            </tr>
+        </table>
+        <p style="font-size: 13px;">Fine so far = days overdue × daily rate, up to the category's cap (see fine policy below).</p>
+    }
+
+    
+    <h2 style="margin-top: 32px;">Late returns by category</h2>
+    @if (Model.ByCategory.Count == 0)
+    {
+        <p>No loans were due in this period.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Category</th><th class="num">Loans due</th><th class="num">Late</th>
+                <th class="num">Still out</th><th class="num">Late rate</th>
+                <th class="num">Avg days late</th><th class="num">Fines assessed</th>
+            </tr>
+            @foreach (var c in Model.ByCategory)
+            {
+                <tr>
+                    <td>@c.Group</td>
+                    <td class="num">@c.Due</td>
+                    <td class="num">@c.Late</td>
+                    <td class="num">@c.StillOverdue</td>
+                    <td class="num">@c.LateRate.ToString("0")%</td>
+                    <td class="num">@c.AvgDaysLate.ToString("0.0")</td>
+                    <td class="num">@c.Fines.ToString("C")</td>
+                </tr>
+            }
+            <tr class="total">
+                <td>Total</td>
+                <td class="num">@Model.LoansDue</td>
+                <td class="num">@(Model.ReturnedLate + Model.StillOutOverdue)</td>
+                <td class="num">@Model.StillOutOverdue</td>
+                <td class="num">@Model.LateRate.ToString("0")%</td>
+                <td class="num">@Model.AvgDaysLate.ToString("0.0")</td>
+                <td class="num">@Model.ByCategory.Sum(c => c.Fines).ToString("C")</td>
+            </tr>
+        </table>
+    }
+
+    
+    <h2 style="margin-top: 32px;">Late returns by borrower type</h2>
+    @if (Model.ByBorrowerType.Count == 0)
+    {
+        <p>No loans were due in this period.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Borrower type</th><th class="num">Loans due</th><th class="num">Late</th>
+                <th class="num">Still out</th><th class="num">Late rate</th>
+                <th class="num">Avg days late</th><th class="num">Fines assessed</th>
+            </tr>
+            @foreach (var b in Model.ByBorrowerType)
+            {
+                <tr>
+                    <td>@b.Group</td>
+                    <td class="num">@b.Due</td>
+                    <td class="num">@b.Late</td>
+                    <td class="num">@b.StillOverdue</td>
+                    <td class="num">@b.LateRate.ToString("0")%</td>
+                    <td class="num">@b.AvgDaysLate.ToString("0.0")</td>
+                    <td class="num">@b.Fines.ToString("C")</td>
+                </tr>
+            }
+        </table>
+    }
+
+    
+    <h2 style="margin-top: 32px;">Monthly late-return rate</h2>
+    <table class="results">
+        <tr><th>Month (due)</th><th class="num">Loans due</th><th class="num">Late</th><th class="num">Late rate</th></tr>
+        @foreach (var m in Model.Monthly)
+        {
+            <tr>
+                <td>@m.Month</td>
+                <td class="num">@m.Due</td>
+                <td class="num">@m.Late</td>
+                <td class="num">@(m.Due == 0 ? "—" : m.LateRate.ToString("0") + "%")</td>
+            </tr>
+        }
+    </table>
+
+    
+    <h2 style="margin-top: 32px;">Fines assessed by type</h2>
+    @if (Model.FinesByType.Count == 0)
+    {
+        <p>No fines were assessed in this period.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Fine type</th><th class="num">Count</th><th class="num">Assessed</th>
+                <th class="num">Paid</th><th class="num">Outstanding</th><th class="num">Collected</th>
+            </tr>
+            @foreach (var f in Model.FinesByType)
+            {
+                <tr>
+                    <td>@f.FineType</td>
+                    <td class="num">@f.Count</td>
+                    <td class="num">@f.Assessed.ToString("C")</td>
+                    <td class="num">@f.Paid.ToString("C")</td>
+                    <td class="num">@f.Outstanding.ToString("C")</td>
+                    <td class="num">@(f.Assessed == 0 ? "—" : ((double)(f.Paid / f.Assessed) * 100).ToString("0") + "%")</td>
+                </tr>
+            }
+            <tr class="total">
+                <td>Total</td>
+                <td class="num">@Model.FinesByType.Sum(f => f.Count)</td>
+                <td class="num">@Model.FinesAssessed.ToString("C")</td>
+                <td class="num">@Model.FinesPaid.ToString("C")</td>
+                <td class="num">@Model.FinesOutstanding.ToString("C")</td>
+                <td class="num">@Model.CollectionRate.ToString("0")%</td>
+            </tr>
+        </table>
+    }
+
+    
+    <h2 style="margin-top: 32px;">Payments received by method</h2>
+    @if (Model.PaymentsByMethod.Count == 0)
+    {
+        <p>No payments were received in this period.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr><th>Method</th><th class="num">Payments</th><th class="num">Amount</th></tr>
+            @foreach (var p in Model.PaymentsByMethod)
+            {
+                <tr>
+                    <td>@(p.Method.Length > 0 ? char.ToUpper(p.Method[0]) + p.Method[1..] : p.Method)</td>
+                    <td class="num">@p.Count</td>
+                    <td class="num">@p.Amount.ToString("C")</td>
+                </tr>
+            }
+            <tr class="total">
+                <td>Total</td>
+                <td class="num">@Model.PaymentsByMethod.Sum(p => p.Count)</td>
+                <td class="num">@Model.PaymentsReceived.ToString("C")</td>
+            </tr>
+        </table>
+    }
+
+   
+    <h2 style="margin-top: 32px;">Members with repeated late returns</h2>
+    @if (Model.RepeatLateReturners.Count == 0)
+    {
+        <p>No member returned items late more than once in this period.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Member</th><th>Type</th><th class="num">Late returns</th>
+                <th class="num">Fines assessed</th><th class="num">Unpaid</th>
+            </tr>
+            @foreach (var r in Model.RepeatLateReturners)
+            {
+                <tr>
+                    <td>@r.Borrower</td>
+                    <td>@r.BorrowerType</td>
+                    <td class="num">@r.LateReturns</td>
+                    <td class="num">@r.FinesAssessed.ToString("C")</td>
+                    <td class="num">@r.Unpaid.ToString("C")</td>
+                </tr>
+            }
+        </table>
+    }
+
+    
+    <h2 style="margin-top: 32px;">Fine policy (reference)</h2>
+    <table class="results">
+        <tr>
+            <th>Category</th><th class="num">Loan days</th><th class="num">Per day late</th>
+            <th class="num">Overdue cap</th><th class="num">Damage fee</th><th class="num">Replacement cost</th>
+        </tr>
+        @foreach (var p in Model.Policies)
+        {
+            <tr>
+                <td>@p.ItemType</td>
+                <td class="num">@p.LoanDays</td>
+                <td class="num">@p.DailyOverdueRate.ToString("C")</td>
+                <td class="num">@p.OverdueCap.ToString("C")</td>
+                <td class="num">@p.DamageFee.ToString("C")</td>
+                <td class="num">@p.ReplacementCost.ToString("C")</td>
+            </tr>
+        }
+    </table>
+
+    <div class="print-only report-footer">Generated @DateTime.Now.ToString("M/d/yyyy h:mm:ss tt")</div>
+
+    <p class="no-print" style="margin-top: 16px;">
+        <button class="button" onclick="window.print()">Print / Save as PDF</button>
+    </p>
+</section>

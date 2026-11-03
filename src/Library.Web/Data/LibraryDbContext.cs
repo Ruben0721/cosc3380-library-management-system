@@ -18,6 +18,11 @@ namespace Project.Data
         public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
         public DbSet<FacultyMember> FacultyMembers => Set<FacultyMember>();
         public DbSet<Rental> Rentals => Set<Rental>();
+        public DbSet<Hold> Holds => Set<Hold>();
+        public DbSet<Fine> Fines => Set<Fine>();
+        public DbSet<Payment> Payments => Set<Payment>();
+        public DbSet<FinePolicy> FinePolicies => Set<FinePolicy>();
+        public DbSet<MaintenanceRequest> MaintenanceRequests => Set<MaintenanceRequest>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

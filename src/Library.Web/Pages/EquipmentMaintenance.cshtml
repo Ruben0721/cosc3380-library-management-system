@@ -1,0 +1,263 @@
+@page
+@model Project.Pages.EquipmentMaintenanceModel
+@using Project.Configuration
+
+<section class="hero">
+    <p class="eyebrow">Reports</p>
+    <h1>Equipment Maintenance</h1>
+    <p>What is breaking, how fast it gets fixed, what is out of service, and which items should be replaced.</p>
+</section>
+
+<section class="overview">
+    <form method="get" class="search-form">
+        <label>From <input type="date" name="From" value="@Model.From?.ToString("yyyy-MM-dd")" /></label>
+        <label>To <input type="date" name="To" value="@Model.To?.ToString("yyyy-MM-dd")" /></label>
+
+        <select name="Category">
+            <option value="">All categories</option>
+            @foreach (var t in LibraryOptions.Types)
+            {
+                <option value="@t.Value" selected="@(t.Value == Model.Category)">@t.Label</option>
+            }
+        </select>
+
+        <select name="RequestType">
+            <option value="">All request types</option>
+            @foreach (var r in Project.Pages.EquipmentMaintenanceModel.RequestTypes)
+            {
+                <option value="@r" selected="@(r == Model.RequestType)">@r</option>
+            }
+        </select>
+
+        <button type="submit" class="button button-primary">View Report</button>
+    </form>
+</section>
+
+<section>
+    <div class="print-only report-title">Equipment Maintenance Report</div>
+    <div class="print-only report-subtitle">
+        @Model.From?.ToString("MMM d, yyyy") to @Model.To?.ToString("MMM d, yyyy")
+        · @(string.IsNullOrEmpty(Model.Category) ? "All categories" : Model.Category)
+        · @(string.IsNullOrEmpty(Model.RequestType) ? "All request types" : Model.RequestType)
+    </div>
+
+    <!--  Summary -->
+    <h2>Summary</h2>
+    <table class="results">
+        <tr><th>Metric</th><th class="num">Value</th></tr>
+        <tr><td>Items tracked</td><td class="num">@Model.ItemsTracked</td></tr>
+        <tr><td>Out of service now (under repair or lost)</td><td class="num">@Model.OutOfServiceNow</td></tr>
+        <tr>
+            <td>Maintenance requests opened</td>
+            <td class="num">
+                @Model.RequestsOpened
+                @if (Model.PrevRequestsOpened > 0)
+                {
+                    <span>(previous period: @Model.PrevRequestsOpened)</span>
+                }
+            </td>
+        </tr>
+        @foreach (var kv in Model.OpenedByType)
+        {
+            <tr><td style="padding-left: 28px;">@kv.Key</td><td class="num">@kv.Value</td></tr>
+        }
+        <tr><td>Requests resolved</td><td class="num">@Model.RequestsResolved</td></tr>
+        <tr><td>Average days to resolve</td><td class="num">@(Model.AvgDaysToResolve == null ? "—" : Model.AvgDaysToResolve.Value.ToString("0.0"))</td></tr>
+        <tr><td>Requests open now</td><td class="num">@Model.OpenNow</td></tr>
+        <tr><td>Oldest open request (days)</td><td class="num">@Model.OldestOpenDays</td></tr>
+        <tr><td>Items returned</td><td class="num">@Model.ReturnsInPeriod</td></tr>
+        <tr><td>Returned damaged</td><td class="num">@Model.DamagedReturns</td></tr>
+        <tr><td>Damage rate</td><td class="num">@Model.DamageRate.ToString("0.0")%</td></tr>
+        <tr><td>Damage &amp; loss fees assessed</td><td class="num">@Model.DamageFees.ToString("C")</td></tr>
+    </table>
+    <p style="font-size: 13px;">
+        Previous period used for comparison: @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy").
+        Requests are created automatically when an item is returned damaged, reaches its inspection interval,
+        or has 3 or more damage repairs in 180 days.
+    </p>
+
+    <!--  Findings -->
+    <h2 style="margin-top: 32px;">Findings &amp; recommendations</h2>
+    <ul>
+        @foreach (var r in Model.Recommendations)
+        {
+            <li>@r</li>
+        }
+    </ul>
+
+    <!--  Open work queue -->
+    <h2 style="margin-top: 32px;">Open maintenance requests (@Model.OpenQueue.Count)</h2>
+    @if (Model.OpenQueue.Count == 0)
+    {
+        <p>No open maintenance requests.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th class="num">#</th><th>Item</th><th>Category</th><th>Request</th><th>Reason</th>
+                <th>Status</th><th>Opened</th><th class="num">Days open</th><th>Item status</th><th>Last borrower</th>
+            </tr>
+            @foreach (var o in Model.OpenQueue)
+            {
+                <tr>
+                    <td class="num">@o.RequestId</td>
+                    <td>@o.ItemName</td>
+                    <td>@o.Category</td>
+                    <td><strong>@o.RequestType</strong></td>
+                    <td>@o.Reason</td>
+                    <td>@o.Status</td>
+                    <td>@o.CreatedAt.ToString("MMM d, yyyy")</td>
+                    <td class="num">@o.DaysOpen</td>
+                    <td>@o.ItemStatus</td>
+                    <td>@(o.LastBorrower ?? "—")</td>
+                </tr>
+            }
+        </table>
+    }
+
+    <!--  By category -->
+    <h2 style="margin-top: 32px;">Maintenance by category</h2>
+    @if (Model.ByCategory.Count == 0)
+    {
+        <p>No items in this category.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Category</th><th class="num">Items</th><th class="num">Out of service</th>
+                <th class="num">In service</th><th class="num">Returns</th><th class="num">Damaged</th>
+                <th class="num">Damage rate</th><th class="num">Requests</th><th class="num">Still open</th>
+                <th class="num">Avg days to resolve</th><th class="num">Damage fees</th>
+            </tr>
+            @foreach (var c in Model.ByCategory)
+            {
+                <tr>
+                    <td>@c.Category</td>
+                    <td class="num">@c.Items</td>
+                    <td class="num">@c.OutOfService</td>
+                    <td class="num">@c.AvailabilityPct.ToString("0")%</td>
+                    <td class="num">@c.Returns</td>
+                    <td class="num">@c.Damaged</td>
+                    <td class="num">@c.DamageRate.ToString("0.0")%</td>
+                    <td class="num">@c.RequestsOpened</td>
+                    <td class="num">@c.StillOpen</td>
+                    <td class="num">@(c.AvgDaysToResolve == null ? "—" : c.AvgDaysToResolve.Value.ToString("0.0"))</td>
+                    <td class="num">@c.DamageFees.ToString("C")</td>
+                </tr>
+            }
+            <tr class="total">
+                <td>Total</td>
+                <td class="num">@Model.ItemsTracked</td>
+                <td class="num">@Model.OutOfServiceNow</td>
+                <td class="num">@(Model.ItemsTracked == 0 ? "—" : (100.0 * (Model.ItemsTracked - Model.OutOfServiceNow) / Model.ItemsTracked).ToString("0") + "%")</td>
+                <td class="num">@Model.ReturnsInPeriod</td>
+                <td class="num">@Model.DamagedReturns</td>
+                <td class="num">@Model.DamageRate.ToString("0.0")%</td>
+                <td class="num">@Model.ByCategory.Sum(c => c.RequestsOpened)</td>
+                <td class="num">@Model.ByCategory.Sum(c => c.StillOpen)</td>
+                <td class="num">@(Model.AvgDaysToResolve == null ? "—" : Model.AvgDaysToResolve.Value.ToString("0.0"))</td>
+                <td class="num">@Model.DamageFees.ToString("C")</td>
+            </tr>
+        </table>
+    }
+
+    <!--  Repair or replace -->
+    <h2 style="margin-top: 32px;">Repair or replace: items with damage history</h2>
+    @if (Model.ItemReliability.Count == 0)
+    {
+        <p>No items have been returned damaged.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Item</th><th>Category</th><th>Status</th><th class="num">Loans</th>
+                <th class="num">Repairs (180 days)</th><th class="num">Repairs (all)</th>
+                <th class="num">Damage per loan</th><th class="num">Fees assessed</th>
+                <th class="num">Replacement cost</th><th>Recommendation</th><th>Why</th>
+            </tr>
+            @foreach (var r in Model.ItemReliability)
+            {
+                <tr>
+                    <td>@r.ItemName</td>
+                    <td>@r.Category</td>
+                    <td>@r.ItemStatus</td>
+                    <td class="num">@r.Loans</td>
+                    <td class="num">@r.DamageRepairs180</td>
+                    <td class="num">@r.DamageRepairsTotal</td>
+                    <td class="num">@r.DamageRate.ToString("0")%</td>
+                    <td class="num">@r.FeesAssessed.ToString("C")</td>
+                    <td class="num">@(r.ReplacementCost == null ? "—" : r.ReplacementCost.Value.ToString("C"))</td>
+                    <td><strong>@r.Recommendation</strong></td>
+                    <td>@r.Why</td>
+                </tr>
+            }
+        </table>
+        <p style="font-size: 13px;">
+            Replace = 3+ damage repairs in 180 days, an open replacement review, damage fees at or above the
+            replacement cost, or the item is lost. Monitor = 2 repairs in 180 days.
+        </p>
+    }
+
+    <!-- 6. Monthly trend -->
+    <h2 style="margin-top: 32px;">Monthly maintenance activity</h2>
+    <table class="results">
+        <tr>
+            <th>Month</th><th class="num">Damage repairs</th><th class="num">Routine inspections</th>
+            <th class="num">Replacement reviews</th><th class="num">Resolved</th>
+        </tr>
+        @foreach (var m in Model.Monthly)
+        {
+            <tr>
+                <td>@m.Month</td>
+                <td class="num">@m.DamageRepairs</td>
+                <td class="num">@m.Inspections</td>
+                <td class="num">@m.ReplacementReviews</td>
+                <td class="num">@m.Resolved</td>
+            </tr>
+        }
+        <tr class="total">
+            <td>Total</td>
+            <td class="num">@Model.Monthly.Sum(m => m.DamageRepairs)</td>
+            <td class="num">@Model.Monthly.Sum(m => m.Inspections)</td>
+            <td class="num">@Model.Monthly.Sum(m => m.ReplacementReviews)</td>
+            <td class="num">@Model.Monthly.Sum(m => m.Resolved)</td>
+        </tr>
+    </table>
+
+    <!-- 7. Inspection schedule -->
+    <h2 style="margin-top: 32px;">Routine inspection schedule</h2>
+    @if (Model.Inspections.Count == 0)
+    {
+        <p>No items in this category need routine inspections.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th>Item</th><th>Category</th><th>Status</th><th class="num">Inspect every</th>
+                <th class="num">Returns since last</th><th class="num">Returns until next</th><th>Last inspection</th>
+            </tr>
+            @foreach (var i in Model.Inspections)
+            {
+                <tr>
+                    <td>@i.ItemName</td>
+                    <td>@i.Category</td>
+                    <td>@i.ItemStatus</td>
+                    <td class="num">@i.Every returns</td>
+                    <td class="num">@i.ReturnsSinceLast</td>
+                    <td class="num">@(i.ReturnsUntilNext == 0 ? "Due now" : i.ReturnsUntilNext.ToString())</td>
+                    <td>@(i.LastInspection == null ? "Never" : i.LastInspection.Value.ToString("MMM d, yyyy"))</td>
+                </tr>
+            }
+        </table>
+    }
+
+    <div class="print-only report-footer">Generated @DateTime.Now.ToString("M/d/yyyy h:mm:ss tt")</div>
+
+    <p class="no-print" style="margin-top: 16px;">
+        <button class="button" onclick="window.print()">Print / Save as PDF</button>
+    </p>
+</section>

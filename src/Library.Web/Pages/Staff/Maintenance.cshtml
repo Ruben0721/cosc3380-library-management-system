@@ -1,0 +1,88 @@
+@page
+@model Project.Pages.Staff.MaintenanceModel
+
+<p class="no-print"><a asp-page="/Staff/Index">&larr; Back to dashboard</a></p>
+
+<section class="hero">
+    <p class="eyebrow">Equipment</p>
+    <h1>Maintenance Requests</h1>
+    <p>Repair, inspect or replace items. Requests are opened automatically when items come back damaged or are due for inspection.</p>
+</section>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <p class="alert alert-success" style="padding: 12px; border-left: 4px solid #2e7d32; background: #edf7ee;">@Model.Message</p>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <p class="alert alert-error" style="padding: 12px; border-left: 4px solid #c62828; background: #fdecea;">@Model.Error</p>
+}
+
+<section class="overview">
+    <form method="get" class="search-form">
+        <select name="Show">
+            <option value="" selected="@(string.IsNullOrEmpty(Model.Show))">Open requests</option>
+            <option value="closed" selected="@(Model.Show == "closed")">Closed requests</option>
+            <option value="all" selected="@(Model.Show == "all")">All requests</option>
+        </select>
+        <button type="submit" class="button button-primary">Show</button>
+        <a asp-page="/EquipmentMaintenance">View maintenance report</a>
+    </form>
+</section>
+
+<section>
+    <h2>@(Model.Show == "closed" ? "Closed" : Model.Show == "all" ? "All" : "Open") requests (@Model.Requests.Count)</h2>
+
+    @if (Model.Requests.Count == 0)
+    {
+        <p>No requests to show.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr>
+                <th class="num">#</th><th>Item</th><th>Category</th><th>Request</th><th>Reason</th>
+                <th>Opened</th><th class="num">Days</th><th>Status</th><th>Item status</th><th>Notes</th><th>Update</th>
+            </tr>
+            @foreach (var r in Model.Requests)
+            {
+                bool isOpen = r.Status == "Open" || r.Status == "In Progress";
+                <tr>
+                    <td class="num">@r.RequestId</td>
+                    <td>@r.ItemName</td>
+                    <td>@r.Category</td>
+                    <td><strong>@r.RequestType</strong></td>
+                    <td>@r.Reason</td>
+                    <td>@r.CreatedAt.ToString("MMM d, yyyy")</td>
+                    <td class="num">@r.DaysOpen</td>
+                    <td>@r.Status@(r.ResolvedAt != null ? " " + r.ResolvedAt.Value.ToString("MMM d") : "")</td>
+                    <td>@r.ItemStatus</td>
+                    <td style="max-width: 220px;">@r.Notes</td>
+                    <td>
+                        @if (isOpen)
+                        {
+                            <form method="post" asp-page-handler="Update" style="display: flex; flex-direction: column; gap: 6px; min-width: 180px;"
+                                  onsubmit="return this.status.value !== 'Replaced' || confirm('Mark this item as replaced? All of its open requests will be closed and the item put back in service.');">
+                                <input type="hidden" name="requestId" value="@r.RequestId" />
+                                <input type="hidden" name="Show" value="@Model.Show" />
+                                <select name="status">
+                                    @foreach (var s in Project.Pages.Staff.MaintenanceModel.NewStatuses)
+                                    {
+                                        if (s == "In Progress" && r.Status == "In Progress") { continue; }
+                                        <option value="@s">@s</option>
+                                    }
+                                </select>
+                                <input type="text" name="notes" maxlength="120" placeholder="Notes (optional)" />
+                                <button type="submit" class="button button-primary">Save</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </table>
+        <p style="font-size: 13px;">
+            Resolved: repair done; the item returns to Available once no other requests are open and it is not on loan.
+            Replaced: the unit was replaced; all its open requests close and it returns to service.
+        </p>
+    }
+</section>

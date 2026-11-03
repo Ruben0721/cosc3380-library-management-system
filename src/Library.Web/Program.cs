@@ -33,7 +33,10 @@ builder.Services.AddRazorPages(options =>
         "/BorrowerRentals",
          "LibraryStaff");
     options.Conventions.AuthorizePage(
-        "/Checkout", 
+        "/Checkout",
+        "LibraryStaff");
+    options.Conventions.AuthorizePage(
+        "/CollectionPerformance",
         "LibraryStaff");
 });
 
