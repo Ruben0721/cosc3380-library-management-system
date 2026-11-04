@@ -18,6 +18,9 @@ namespace Project.Models
         [Required, StringLength(512)]
         public string PasswordHash { get; set; } = "";
 
+        //increase this after a password reset so old logins stop working
+        public int SessionVersion { get; set; } = 1;
+
         [Required, StringLength(20)]
         public string Role { get; set; } = "Student";
 

@@ -68,7 +68,9 @@ namespace Project.Auth
                 string currentStaffId =
                     account.StaffId?.ToString() ?? "";
 
+                // A reset or account change means the user needs to log in again
                 bool accountChanged =
+                    !AccountAccessRules.HasCurrentSessionVersion(principal, account) ||
                     cookieRole != account.Role ||
                     cookieEmail != account.Email ||
                     cookieBorrowerId != currentBorrowerId ||

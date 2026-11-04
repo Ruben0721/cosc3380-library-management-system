@@ -9,6 +9,7 @@ using MySqlConnector;
 using Project.Models;
 using Project.Data;
 using Project.Configuration;
+using Project.Auth;
 
 namespace Project.Pages.Staff
 {
@@ -193,6 +194,9 @@ namespace Project.Pages.Staff
 
             ExpectedAccountId = _account?.AccountId;
 
+            if (!AccountAccessRules.CanManageAccountRole(User, _account?.Role, _account?.Role))
+                return Forbid();
+
             if (IsNew)
             {
                 Input.StartDate = DateTime.Today;
@@ -237,7 +241,12 @@ namespace Project.Pages.Staff
                     return BadRequest(problem);
                 }
 
-                // Detect a login added or replaced after the form was opened.
+                // Detect a login added or replaced after the form was opened
+                // Enforce this, hiding an option is not authorization
+                if (!AccountAccessRules.CanManageAccountRole(User, _account?.Role,
+                    IsStaff ? Input.WebsiteRole : "Faculty"))
+                    return Forbid();
+
                 if (ExpectedAccountId != _account?.AccountId)
                 {
                     ModelState.AddModelError(

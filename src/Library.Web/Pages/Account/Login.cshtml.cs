@@ -167,7 +167,12 @@ namespace Project.Pages.Account
 
             new Claim(
                 ClaimTypes.Role,
-                account.Role)
+                account.Role),
+
+            //save the version from this login so we can check it on later requests
+            new Claim(
+                "session_version",
+                account.SessionVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
         };
 
                 if (account.LibraryUserId.HasValue)

@@ -103,7 +103,6 @@
                 </div>
 
                 <div class="col-12 form-text">
-                    Use the limits agreed by your team.
                     A blank limit is stored as NULL; zero is stored as zero.
                 </div>
             }
@@ -146,10 +145,13 @@
                     <select asp-for="Input.WebsiteRole"
                             class="form-select">
                         <option value="Staff">Staff</option>
-                        <option value="Admin">Admin</option>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <option value="Admin">Admin</option>
+                        }
                     </select>
                     <div class="form-text">
-                        Both roles have the same management permissions.
+                        Only Admins can assign the Admin role or reset Staff passwords.
                     </div>
                 </div>
             }
