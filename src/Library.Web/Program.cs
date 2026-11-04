@@ -8,7 +8,6 @@ using Project.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder(
@@ -24,19 +23,27 @@ builder.Services.AddRazorPages(options =>
         "LibraryStaff");
 
     options.Conventions.AuthorizePage(
-        "/Report",
+        "/CheckoutActivity",
         "LibraryStaff");
-    options.Conventions.AuthorizePage(
-        "/CheckoutActivity", 
-        "LibraryStaff");
+
     options.Conventions.AuthorizePage(
         "/BorrowerRentals",
-         "LibraryStaff");
+        "LibraryStaff");
+
     options.Conventions.AuthorizePage(
         "/Checkout",
         "LibraryStaff");
+
     options.Conventions.AuthorizePage(
         "/CollectionPerformance",
+        "LibraryStaff");
+
+    options.Conventions.AuthorizePage(
+        "/OverdueFines",
+        "LibraryStaff");
+
+    options.Conventions.AuthorizePage(
+        "/EquipmentMaintenance",
         "LibraryStaff");
 });
 

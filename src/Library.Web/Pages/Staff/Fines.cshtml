@@ -11,11 +11,17 @@
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <p class="alert alert-success" style="padding: 12px; border-left: 4px solid #2e7d32; background: #edf7ee;">@Model.Message</p>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Payment recorded.</strong> @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 @if (!string.IsNullOrEmpty(Model.Error))
 {
-    <p class="alert alert-error" style="padding: 12px; border-left: 4px solid #c62828; background: #fdecea;">@Model.Error</p>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Payment not recorded.</strong> @Model.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
 <section class="overview">
@@ -69,17 +75,23 @@
                     <td>@f.DateAssessed.ToString("MMM d, yyyy")</td>
                     <td class="num">@f.Amount.ToString("C")</td>
                     <td>
-                        <form method="post" asp-page-handler="Pay" style="display: flex; gap: 8px; align-items: center;"
-                              onsubmit="return confirm('Record a @f.Amount.ToString("C") payment from @f.Member.Replace("'", "")?');">
+                        <form method="post" asp-page-handler="Pay" class="d-flex gap-2 align-items-center">
                             <input type="hidden" name="fineId" value="@f.FineId" />
                             <input type="hidden" name="Search" value="@Model.Search" />
-                            <select name="method">
+                            <select name="method" class="form-select form-select-sm" style="width: auto;">
                                 @foreach (var m in Project.Pages.Staff.FinesModel.Methods)
                                 {
                                     <option value="@m">@(char.ToUpper(m[0]) + m[1..])</option>
                                 }
                             </select>
-                            <button type="submit" class="button button-primary">Pay</button>
+                            <button type="button" class="btn btn-sm btn-primary js-pay"
+                                    data-fine="@f.FineId"
+                                    data-member="@f.Member"
+                                    data-item="@(f.ItemName ?? "—")"
+                                    data-type="@f.FineType"
+                                    data-amount="@f.Amount.ToString("C")">
+                                Pay
+                            </button>
                         </form>
                     </td>
                 </tr>
@@ -110,3 +122,69 @@
         </table>
     }
 </section>
+
+<!-- Payment confirmation window -->
+<div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="payModalTitle">Confirm payment</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Record this payment and mark the fine as paid?</p>
+                <dl class="row mb-0">
+                    <dt class="col-5">Member</dt>      <dd class="col-7" id="payMember"></dd>
+                    <dt class="col-5">Item</dt>        <dd class="col-7" id="payItem"></dd>
+                    <dt class="col-5">Fine</dt>        <dd class="col-7" id="payType"></dd>
+                    <dt class="col-5">Payment method</dt><dd class="col-7" id="payMethod"></dd>
+                    <dt class="col-5">Amount</dt>      <dd class="col-7 fs-5 fw-bold" id="payAmount"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="payConfirm">Record payment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    
+    document.addEventListener('DOMContentLoaded', function () {
+        var modalEl = document.getElementById('payModal');
+        if (!modalEl || typeof bootstrap === 'undefined') {
+            
+            document.querySelectorAll('.js-pay').forEach(function (b) { b.type = 'submit'; });
+            return;
+        }
+
+        var modal = new bootstrap.Modal(modalEl);
+        var pendingForm = null;
+        var confirmBtn = document.getElementById('payConfirm');
+
+        document.querySelectorAll('.js-pay').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                pendingForm = btn.closest('form');
+                var method = pendingForm.querySelector('select[name="method"]');
+
+                document.getElementById('payMember').textContent = btn.dataset.member;
+                document.getElementById('payItem').textContent = btn.dataset.item;
+                document.getElementById('payType').textContent = btn.dataset.type + ' (fine #' + btn.dataset.fine + ')';
+                document.getElementById('payMethod').textContent = method.options[method.selectedIndex].text;
+                document.getElementById('payAmount').textContent = btn.dataset.amount;
+
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Record payment';
+                modal.show();
+            });
+        });
+
+        confirmBtn.addEventListener('click', function () {
+            if (!pendingForm) return;
+            confirmBtn.disabled = true;          // prevent double payments
+            confirmBtn.textContent = 'Saving…';
+            pendingForm.submit();
+        });
+    });
+</script>
