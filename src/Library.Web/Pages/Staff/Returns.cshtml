@@ -1,25 +1,40 @@
 @page
 @model Project.Pages.Staff.ReturnsModel
 
-<section class="hero">
-    <p class="eyebrow">Circulation</p>
-    <h1>Return an Item</h1>
-    <p>Check in a borrowed item and record its condition. Fines, repair requests and the item's status update automatically.</p>
-</section>
+@{
+    ViewData["Title"] = "Return an Item";
+}
+
+<div class="report-header">
+    <div>
+        <p class="eyebrow">Circulation</p>
+        <h1>Return an Item</h1>
+        <p class="report-lede">Check in a borrowed item and record its condition. Fines, repair requests and the item's status update automatically.</p>
+    </div>
+</div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <p class="alert alert-success" style="padding: 12px; border-left: 4px solid #2e7d32; background: #edf7ee;">@Model.Message</p>
+    <div class="alert alert-success alert-dismissible fade show" role="status">
+        <strong>Item returned.</strong> @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 @if (!string.IsNullOrEmpty(Model.Error))
 {
-    <p class="alert alert-error" style="padding: 12px; border-left: 4px solid #c62828; background: #fdecea;">@Model.Error</p>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Not returned.</strong> @Model.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
 <section class="overview">
     <form method="get" class="search-form">
-        <input type="text" name="Search" value="@Model.Search" placeholder="Borrower or item name" />
-        <label><input type="checkbox" name="OverdueOnly" value="true" checked="@Model.OverdueOnly" /> Overdue only</label>
+        <input type="text" name="Search" value="@Model.Search" placeholder="Borrower or item name" aria-label="Borrower or item name" />
+        <select name="OverdueOnly" aria-label="Show">
+            <option value="false" selected="@(!Model.OverdueOnly)">All checked-out items</option>
+            <option value="true" selected="@Model.OverdueOnly">Overdue items only</option>
+        </select>
         <button type="submit" class="button button-primary">Search</button>
         @if (!string.IsNullOrEmpty(Model.Search) || Model.OverdueOnly)
         {
@@ -50,21 +65,30 @@
                     <td>@l.Borrower</td>
                     <td>@l.StartDate.ToString("MMM d, yyyy")</td>
                     <td>@(l.DueDate?.ToString("MMM d, yyyy") ?? "—")</td>
-                    <td class="num">@(l.DaysOverdue > 0 ? l.DaysOverdue.ToString() : "—")</td>
+                    <td class="num">
+                        @if (l.DaysOverdue > 0)
+                        {
+                            <span class="pill pill-warn">@l.DaysOverdue day@(l.DaysOverdue == 1 ? "" : "s") late</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">On time</span>
+                        }
+                    </td>
                     <td class="num">@(l.EstimatedFine > 0 ? l.EstimatedFine.ToString("C") : "—")</td>
                     <td colspan="2">
-                        <form method="post" asp-page-handler="Return" style="display: flex; gap: 8px; align-items: center;"
+                        <form method="post" asp-page-handler="Return" class="d-flex gap-2 align-items-center justify-content-end"
                               onsubmit="return this.condition.value === 'Good' || confirm('Record this item as ' + this.condition.value + '? A fee will be charged.');">
                             <input type="hidden" name="rentalId" value="@l.RentalId" />
                             <input type="hidden" name="Search" value="@Model.Search" />
                             <input type="hidden" name="OverdueOnly" value="@Model.OverdueOnly.ToString().ToLower()" />
-                            <select name="condition">
+                            <select name="condition" class="form-select form-select-sm" style="width: auto;" aria-label="Condition">
                                 @foreach (var c in Project.Pages.Staff.ReturnsModel.Conditions)
                                 {
                                     <option value="@c">@c</option>
                                 }
                             </select>
-                            <button type="submit" class="button button-primary">Return</button>
+                            <button type="submit" class="btn btn-sm btn-library">Return</button>
                         </form>
                     </td>
                 </tr>

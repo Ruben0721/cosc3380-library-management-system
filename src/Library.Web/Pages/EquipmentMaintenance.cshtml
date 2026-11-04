@@ -12,7 +12,7 @@
         : LibraryOptions.Types.Where(t => t.Value == Model.Category).Select(t => t.Label).FirstOrDefault() ?? Model.Category;
 }
 
-
+<!-- Header -->
 <div class="report-header">
     <div>
         <p class="eyebrow">Reports</p>
@@ -27,6 +27,7 @@
     <button type="button" class="btn btn-outline-secondary no-print" onclick="window.print()">Print / Save as PDF</button>
 </div>
 
+<!-- Filters -->
 <section class="overview no-print">
     <form method="get" class="search-form">
         <label>From <input type="date" name="From" value="@Model.From?.ToString("yyyy-MM-dd")" /></label>
@@ -52,7 +53,7 @@
     </form>
 </section>
 
-
+<!-- Headline numbers -->
 <div class="kpi-grid">
     <div class="kpi">
         <div class="kpi-label">In service</div>
@@ -95,7 +96,7 @@
     </div>
 </div>
 
-
+<!-- Findings -->
 <section class="findings">
     <h2>Findings &amp; recommendations</h2>
     <ol>
@@ -106,13 +107,9 @@
     </ol>
 </section>
 
-
+<!-- Open work queue -->
 <section class="report-section">
-    <h2>Open maintenance requests (@Model.OpenQueue.Count)</h2>
-    <p class="section-note">
-        Replacement reviews first, then damage repairs, oldest first.
-        <a class="no-print" asp-page="/Staff/Maintenance">Work on these requests →</a>
-    </p>
+    <h2 class="section-title">Open maintenance requests (@Model.OpenQueue.Count) <a class="section-link no-print" asp-page="/Staff/Maintenance">Work on these requests →</a></h2>
     @if (Model.OpenQueue.Count == 0)
     {
         <p>No open maintenance requests.</p>
@@ -143,13 +140,9 @@
     }
 </section>
 
-
+<!-- Repair or replace -->
 <section class="report-section">
     <h2>Repair or replace</h2>
-    <p class="section-note">
-        Items with damage history. Replace = 3+ repairs in 180 days, an open replacement review,
-        damage fees at or above replacement cost, or lost. Monitor = 2 repairs in 180 days.
-    </p>
     @if (Model.ItemReliability.Count == 0)
     {
         <p>No items have been returned damaged.</p>
@@ -183,10 +176,9 @@
     }
 </section>
 
-
+<!-- By category -->
 <section class="report-section">
     <h2>Maintenance by category</h2>
-    <p class="section-note">Sorted by damage rate, highest first.</p>
     @if (Model.ByCategory.Count == 0)
     {
         <p>No items in this category.</p>
@@ -237,7 +229,6 @@
 <div class="report-grid-2">
     <section class="report-section">
         <h2>Monthly activity</h2>
-        <p class="section-note">Requests opened and resolved each month.</p>
         <table class="results">
             <tr>
                 <th>Month</th><th class="num">Repairs</th><th class="num">Inspections</th>
@@ -265,7 +256,6 @@
 
     <section class="report-section">
         <h2>Routine inspection schedule</h2>
-        <p class="section-note">Equipment is inspected after a set number of returns.</p>
         @if (Model.Inspections.Count == 0)
         {
             <p>No items in this category need routine inspections.</p>
@@ -292,5 +282,5 @@
 <p class="report-meta" style="font-size: 13px; color: #5f6b64;">
     Compared with the previous period @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy").
     Requests are created automatically when an item is returned damaged, reaches its inspection interval,
-    or has 3 or more damage repairs in 180 days. Generated @DateTime.Now.ToString("MMM d, yyyy h:mm tt").
+    or has 3 or more damage repairs in 180 days. Recommendation: Replace = 3+ repairs in 180 days, an open replacement review, damage fees at or above the replacement cost, or lost; Monitor = 2 repairs in 180 days. Generated @DateTime.Now.ToString("MMM d, yyyy h:mm tt").
 </p>

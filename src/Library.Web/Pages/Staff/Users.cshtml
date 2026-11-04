@@ -4,52 +4,77 @@
     ViewData["Title"] = "User Management";
 }
 
-<div class="mb-4">
-    <a asp-page="/Staff/Index">Back to Staff Dashboard</a>
-
-    <h1 class="mt-3">User Management</h1>
-
-    <p class="text-muted">
-        View library borrowers and their website account status.
-    </p>
-    <a class="btn btn-outline-primary" asp-page="/Staff/Directory">
-        Staff &amp; Faculty Directory
-    </a>
+<div class="report-header">
+    <div>
+        <p class="eyebrow">Members</p>
+        <h1>User Management</h1>
+        <p class="report-lede">Library borrowers, their member type, and their website login.</p>
+        <p class="report-meta">
+            @Model.CountTotal borrowers · @Model.CountNoLogin without a website login · @Model.CountInactive inactive
+        </p>
+    </div>
+    <a class="btn btn-outline-secondary" asp-page="/Staff/Directory">Staff &amp; Faculty Directory</a>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.StatusMessage))
 {
-    <div class="alert alert-success" role="status">
+    <div class="alert alert-success alert-dismissible fade show" role="status">
         @Model.StatusMessage
+        @if (!string.IsNullOrEmpty(Model.TempPassword))
+        {
+            <div class="mt-2">
+                Temporary password for <strong>@Model.TempPasswordFor</strong>:
+                <code class="fs-6 px-2 py-1 bg-white border rounded" id="tempPassword">@Model.TempPassword</code>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
+                        onclick="navigator.clipboard.writeText(document.getElementById('tempPassword').textContent); this.textContent='Copied';">
+                    Copy
+                </button>
+                <div class="small text-muted mt-1">
+                    Give this to the member in person. It is shown only once and is not stored anywhere readable.
+                </div>
+            </div>
+        }
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-danger" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
         @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
-<form method="get" class="row g-2 mb-4">
-    <div class="col-md-8">
-        <label asp-for="Search" class="form-label">
-            Name, login email, or borrower ID
-        </label>
-
+<form method="get" class="row g-2 mb-4 align-items-end">
+    <div class="col-md-5">
+        <label asp-for="Search" class="form-label">Name, login email, or borrower ID</label>
         <input asp-for="Search" class="form-control" maxlength="100" />
-
         <span asp-validation-for="Search" class="text-danger"></span>
     </div>
 
-    <div class="col-md-4 d-flex align-items-end gap-2">
-        <button type="submit" class="btn btn-primary">
-            Search
-        </button>
+    <div class="col-md-2">
+        <label for="MemberType" class="form-label">Member type</label>
+        <select id="MemberType" name="MemberType" class="form-select">
+            <option value="">All</option>
+            <option value="Student" selected="@(Model.MemberType == "Student")">Student</option>
+            <option value="Faculty" selected="@(Model.MemberType == "Faculty")">Faculty</option>
+        </select>
+    </div>
 
-        <a asp-page="/Staff/Users" class="btn btn-outline-secondary">
-            Clear
-        </a>
+    <div class="col-md-2">
+        <label for="Login" class="form-label">Website login</label>
+        <select id="Login" name="Login" class="form-select">
+            <option value="">All</option>
+            <option value="none" selected="@(Model.Login == "none")">No login</option>
+            <option value="enabled" selected="@(Model.Login == "enabled")">Enabled</option>
+            <option value="disabled" selected="@(Model.Login == "disabled")">Disabled</option>
+        </select>
+    </div>
+
+    <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-page="/Staff/Users" class="btn btn-outline-secondary">Clear</a>
     </div>
 </form>
 
@@ -59,105 +84,110 @@
 }
 else if (Model.Borrowers.Count == 0)
 {
-    <div class="alert alert-info">
-        No borrowers matched your search.
-    </div>
+    <div class="alert alert-info">No borrowers matched your search.</div>
 }
 else
 {
     @if (Model.HasMoreResults)
     {
         <div class="alert alert-info">
-            Showing the first 100 borrowers.
-            Narrow your search to find a specific person.
+            Showing the first 100 borrowers. Narrow your search to find a specific person.
         </div>
     }
 
     <div class="table-responsive">
-        <table class="table table-striped align-middle">
-            <caption>
-                Borrower status and website login status are separate.
-            </caption>
+        <table class="table align-middle">
+            <caption>Borrower status controls borrowing; website login controls signing in. They are separate.</caption>
 
             <thead>
                 <tr>
-                    <th scope="col">Borrower ID</th>
+                    <th scope="col">ID</th>
                     <th scope="col">Name</th>
-                    <th scope="col">Login Email</th>
-                    <th scope="col">Account Role</th>
-                    <th scope="col">Borrower Status</th>
-                    <th scope="col">Website Login</th>
+                    <th scope="col">Member type</th>
+                    <th scope="col">Borrower status</th>
+                    <th scope="col">Website login</th>
+                    <th scope="col" class="text-end">Actions</th>
                 </tr>
             </thead>
 
             <tbody>
-                @foreach (var borrower in Model.Borrowers)
+                @foreach (var b in Model.Borrowers)
                 {
                     <tr>
-                        <td>@borrower.LibraryUserId</td>
-                        <td>@borrower.FullName</td>
-                        <td>@(borrower.Email ?? "No login account")</td>
-                        <td>@(borrower.Role ?? "—")</td>
+                        <td class="text-muted">@b.LibraryUserId</td>
+                        <td><strong>@b.FullName</strong></td>
+                        <td>@b.MemberType</td>
 
                         <td>
-                            <div class="mb-2">
-                                @(borrower.BorrowerIsActive ? "Active" : "Inactive")
-                            </div>
-
-                            @if (borrower.CanManage)
+                            @if (b.BorrowerIsActive)
                             {
-                                <form method="post" asp-page="/Staff/Users" asp-page-handler="SetBorrowerStatus">
-                                    <input type="hidden" name="libraryUserId" value="@borrower.LibraryUserId" />
-
-                                    <input type="hidden" name="isActive" value="@(borrower.BorrowerIsActive ? "false" : "true")" />
-
-                                    <input type="hidden" name="Search" value="@Model.Search" />
-
-                                    <button type="submit" class="btn btn-sm btn-outline-primary">
-                                        @(borrower.BorrowerIsActive
-                                            ? "Deactivate borrower"
-                                            : "Activate borrower")
-                                    </button>
-                                </form>
+                                <span class="pill pill-ok">Active</span>
                             }
                             else
                             {
-                                <span class="text-muted">Protected account</span>
+                                <span class="pill pill-off">Inactive</span>
                             }
                         </td>
 
                         <td>
-                            @if (borrower.AccountId == null)
+                            @if (b.AccountId == null)
                             {
-                                <span>No login account</span>
+                                <span class="pill pill-none">No login</span>
                             }
                             else
                             {
-                                <div class="mb-2">
-                                    @(borrower.LoginIsEnabled == true ? "Enabled" : "Disabled")
-                                </div>
+                                <div>@b.Email</div>
+                                <span class="pill @(b.LoginIsEnabled == true ? "pill-ok" : "pill-off")">
+                                    @(b.LoginIsEnabled == true ? "Enabled" : "Disabled")
+                                </span>
+                            }
+                        </td>
 
-                                @if (borrower.CanManage)
-                                {
-                                    <form method="post" asp-page="/Staff/Users" asp-page-handler="SetLoginStatus">
-                                        <input type="hidden" name="libraryUserId" value="@borrower.LibraryUserId" />
+                        <td class="text-end">
+                            @if (!b.CanManage)
+                            {
+                                <span class="text-muted small">Protected account</span>
+                            }
+                            else
+                            {
+                                <div class="d-inline-flex flex-wrap gap-2 justify-content-end">
+                                    <a class="btn btn-sm btn-outline-secondary" asp-page="/BorrowerRentals" asp-route-UserId="@b.LibraryUserId">Rentals</a>
+                                    @if (b.CanCreateLogin)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-primary js-create-login"
+                                                data-id="@b.LibraryUserId"
+                                                data-name="@b.FullName"
+                                                data-type="@b.MemberType"
+                                                data-email="@b.RecordEmail">
+                                            Create login
+                                        </button>
+                                    }
 
-                                        <input type="hidden" name="isEnabled"
-                                               value="@(borrower.LoginIsEnabled == true ? "false" : "true")" />
+                                    @if (b.AccountId != null)
+                                    {
+                                        <form method="post" asp-page-handler="SetLoginStatus">
+                                            <input type="hidden" name="libraryUserId" value="@b.LibraryUserId" />
+                                            <input type="hidden" name="isEnabled" value="@(b.LoginIsEnabled == true ? "false" : "true")" />
+                                            <input type="hidden" name="Search" value="@Model.Search" />
+                                            <input type="hidden" name="MemberType" value="@Model.MemberType" />
+                                            <input type="hidden" name="Login" value="@Model.Login" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                                @(b.LoginIsEnabled == true ? "Disable login" : "Enable login")
+                                            </button>
+                                        </form>
+                                    }
 
+                                    <form method="post" asp-page-handler="SetBorrowerStatus">
+                                        <input type="hidden" name="libraryUserId" value="@b.LibraryUserId" />
+                                        <input type="hidden" name="isActive" value="@(b.BorrowerIsActive ? "false" : "true")" />
                                         <input type="hidden" name="Search" value="@Model.Search" />
-
-                                        <button type="submit" class="btn btn-sm btn-outline-primary">
-                                            @(borrower.LoginIsEnabled == true
-                                                ? "Disable login"
-                                                : "Enable login")
+                                        <input type="hidden" name="MemberType" value="@Model.MemberType" />
+                                        <input type="hidden" name="Login" value="@Model.Login" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                            @(b.BorrowerIsActive ? "Deactivate" : "Activate")
                                         </button>
                                     </form>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">Protected account</span>
-                                }
+                                </div>
                             }
                         </td>
                     </tr>
@@ -166,3 +196,60 @@ else
         </table>
     </div>
 }
+
+<!-- Create login window -->
+<div class="modal fade" id="createLoginModal" tabindex="-1" aria-labelledby="createLoginTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-page-handler="CreateLogin" class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="createLoginTitle">Create website login</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="libraryUserId" id="clId" />
+                <input type="hidden" name="Search" value="@Model.Search" />
+                <input type="hidden" name="MemberType" value="@Model.MemberType" />
+                <input type="hidden" name="Login" value="@Model.Login" />
+
+                <dl class="row mb-3">
+                    <dt class="col-4">Member</dt><dd class="col-8" id="clName"></dd>
+                    <dt class="col-4">Role</dt><dd class="col-8" id="clType"></dd>
+                </dl>
+
+                <label for="clEmail" class="form-label">Login email</label>
+                <input type="email" name="email" id="clEmail" class="form-control" maxlength="255" required />
+                <div class="form-text">
+                    A temporary password is generated and shown once after you create the login.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="clSubmit">Create login</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var modalEl = document.getElementById('createLoginModal');
+        if (!modalEl || typeof bootstrap === 'undefined') return;
+        var modal = new bootstrap.Modal(modalEl);
+
+        document.querySelectorAll('.js-create-login').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.getElementById('clId').value = btn.dataset.id;
+                document.getElementById('clName').textContent = btn.dataset.name;
+                document.getElementById('clType').textContent = btn.dataset.type;
+                document.getElementById('clEmail').value = btn.dataset.email || '';
+                document.getElementById('clSubmit').disabled = false;
+                modal.show();
+                setTimeout(function () { document.getElementById('clEmail').focus(); }, 300);
+            });
+        });
+
+        modalEl.querySelector('form').addEventListener('submit', function () {
+            document.getElementById('clSubmit').disabled = true;   // prevent double submit
+        });
+    });
+</script>

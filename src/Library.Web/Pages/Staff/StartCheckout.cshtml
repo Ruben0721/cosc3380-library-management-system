@@ -1,0 +1,88 @@
+@page
+@model Project.Pages.Staff.StartCheckoutModel
+@using Project.Configuration
+@{
+    ViewData["Title"] = "Check Out an Item";
+}
+
+<div class="report-header">
+    <div>
+        <p class="eyebrow">Circulation</p>
+        <h1>Check Out an Item</h1>
+        <p class="report-lede">Find the item the member wants to borrow, then choose the borrower on the next screen.</p>
+    </div>
+    <a class="btn btn-library-outline" asp-page="/Staff/Returns">Return an item instead</a>
+</div>
+
+<section class="overview">
+    <form method="get" class="search-form">
+        <input type="text" name="Search" value="@Model.Search" placeholder="Title or item name" aria-label="Title or item name" autofocus />
+
+        <select name="Category" aria-label="Category">
+            <option value="">All categories</option>
+            @foreach (var t in LibraryOptions.Types)
+            {
+                <option value="@t.Value" selected="@(t.Value == Model.Category)">@t.Label</option>
+            }
+        </select>
+
+        <select name="AvailableOnly" aria-label="Show">
+            <option value="true" selected="@Model.AvailableOnly">Available items</option>
+            <option value="false" selected="@(!Model.AvailableOnly)">All items</option>
+        </select>
+
+        <button type="submit" class="button button-primary">Search</button>
+    </form>
+</section>
+
+<section class="report-section">
+    <h2>@(Model.AvailableOnly ? "Available items" : "Items") (@Model.Items.Count@(Model.HasMore ? "+" : ""))</h2>
+
+    @if (Model.HasMore)
+    {
+        <p class="section-note">Showing the first 50. Search by title to narrow the list.</p>
+    }
+
+    @if (Model.Items.Count == 0)
+    {
+        <p>No items match your search.@(Model.AvailableOnly ? " Try \"All items\" to see items that are checked out or under repair." : "")</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr><th>Item</th><th>Category</th><th>Status</th>@if (!Model.AvailableOnly) { <th>Currently with</th> }<th class="num"><span class="visually-hidden">Action</span></th></tr>
+            @foreach (var i in Model.Items)
+            {
+                bool available = i.Status == "Available";
+                <tr>
+                    <td><strong>@i.Name</strong></td>
+                    <td>@i.Category</td>
+                    <td><span class="pill @(available ? "pill-ok" : "pill-off")">@i.Status</span></td>
+                    @if (!Model.AvailableOnly)
+                    {
+                    <td>
+                        @if (i.Borrower != null)
+                        {
+                            <span>@i.Borrower</span>
+                            @if (i.DueDate != null)
+                            {
+                                <span class="text-muted"> · due @i.DueDate.Value.ToString("MMM d")</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    }
+                    <td class="num">
+                        @if (available)
+                        {
+                            <a class="btn btn-sm btn-library" asp-page="/Checkout" asp-route-ItemId="@i.Id">Check out</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </table>
+    }
+</section>

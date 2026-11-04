@@ -1,11 +1,4 @@
-@*
-    Breadcrumb trail shown at the top of staff pages.
-    Included once in _Layout.cshtml:  <partial name="_Breadcrumb" />
-    To add a page: add a line to the Pages table below.
-      Key    = the page's path (file location without .cshtml)
-      Title  = what the trail shows for this page
-      Parent = the page one level up (null = directly under the dashboard)
-*@
+
 @{
     var pages = new Dictionary<string, (string Title, string? Parent)>(StringComparer.OrdinalIgnoreCase)
     {
@@ -17,9 +10,10 @@
         ["/Staff/Users"]           = ("Manage Users", null),
 
         // Circulation & equipment
-        ["/Checkout"]              = ("Check Out", null),
+        ["/Staff/StartCheckout"]  = ("Check Out", null),
+        ["/Checkout"]              = ("Choose Borrower", "/Staff/StartCheckout"),
         ["/CheckoutActivity"]      = ("Checkout Activity", null),
-        ["/BorrowerRentals"]       = ("Borrower Rentals", null),
+        ["/BorrowerRentals"]       = ("Rental History", "/Staff/Users"),
         ["/Staff/Returns"]         = ("Return an Item", null),
         ["/Staff/Fines"]           = ("Fines & Payments", null),
         ["/Staff/Maintenance"]     = ("Maintenance Requests", null),
@@ -32,7 +26,7 @@
 
     var current = ViewContext.RouteData.Values["page"] as string;
 
-    // Build the trail from the current page up to the dashboard
+    
     var trail = new List<(string Title, string? Page)>();
     var key = current;
     while (key != null && pages.TryGetValue(key, out var entry))

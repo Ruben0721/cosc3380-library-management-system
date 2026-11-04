@@ -6,7 +6,7 @@
     double change = Model.PrevCheckouts == 0 ? 0
         : 100.0 * (Model.TotalCheckouts - Model.PrevCheckouts) / Model.PrevCheckouts;
 
-   
+    // Message for empty title lists: explain when the demand filter is the reason
     string EmptyMessage(string normal) => string.IsNullOrEmpty(Model.DemandFilter)
         ? normal
         : $"No titles with \"{Model.DemandFilter}\" demand in this section for this period.";
@@ -130,7 +130,6 @@
 <!-- Performance by category -->
 <section class="report-section">
     <h2>Performance by category</h2>
-    <p class="section-note">Demand is based on checkouts per copy compared with the library average.</p>
     <table class="results">
         <tr>
             <th>Category</th><th class="num">Copies</th><th class="num">Available</th>
@@ -170,7 +169,6 @@
 <!-- Monthly trend -->
 <section class="report-section">
     <h2>Monthly checkouts</h2>
-    <p class="section-note">Checkouts per category, by month.</p>
     <table class="results">
         <tr>
             <th>Category</th>
@@ -199,11 +197,10 @@
     </table>
 </section>
 
-
+<!-- Most in demand + most waitlisted side by side -->
 <div class="report-grid-2">
     <section class="report-section">
         <h2>Most in-demand titles</h2>
-        <p class="section-note">Highest checkouts in this period.</p>
         @if (Model.TopTitles.Count == 0)
         {
             <p>@EmptyMessage("No checkouts in this period.")</p>
@@ -228,7 +225,6 @@
 
     <section class="report-section">
         <h2>Most waitlisted titles</h2>
-        <p class="section-note">Holds placed in this period.</p>
         @if (Model.MostWaitlisted.Count == 0)
         {
             <p>@EmptyMessage("No holds placed in this period.")</p>
@@ -252,11 +248,10 @@
     </section>
 </div>
 
-
+<!-- Least borrowed + never borrowed side by side -->
 <div class="report-grid-2">
     <section class="report-section">
         <h2>Least borrowed titles</h2>
-        <p class="section-note">Borrowed, but rarely.</p>
         @if (Model.LeastBorrowed.Count == 0)
         {
             <p>@EmptyMessage("No checkouts in this period.")</p>
@@ -280,7 +275,6 @@
 
     <section class="report-section">
         <h2>Not borrowed in this period (@Model.NeverBorrowed.Count)</h2>
-        <p class="section-note">Candidates for promotion, relocation or weeding.</p>
         @if (Model.NeverBorrowed.Count == 0)
         {
             <p>@EmptyMessage("Every title was borrowed at least once.")</p>
@@ -304,6 +298,6 @@
 </div>
 
 <p class="report-meta" style="font-size: 13px; color: #5f6b64;">
-    Compared with the previous period @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy").
+    Compared with the previous period @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy"). Demand is based on checkouts per copy compared with the library average.
     Generated @DateTime.Now.ToString("MMM d, yyyy h:mm tt").
 </p>

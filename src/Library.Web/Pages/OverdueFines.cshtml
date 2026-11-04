@@ -111,7 +111,6 @@
 <div class="report-grid-2">
     <section class="report-section">
         <h2>Loan outcomes</h2>
-        <p class="section-note">Loans with a due date in this period.</p>
         <table class="results">
             <tr><th>Outcome</th><th class="num">Loans</th><th class="num">Share</th></tr>
             <tr><td>Returned on time</td><td class="num">@Model.ReturnedOnTime</td><td class="num">@Pct(Model.ReturnedOnTime, Model.LoansDue)</td></tr>
@@ -126,7 +125,6 @@
 
     <section class="report-section">
         <h2>Fine collection</h2>
-        <p class="section-note">Fines assessed in this period, by type.</p>
         @if (Model.FinesByType.Count == 0)
         {
             <p>No fines were assessed in this period.</p>
@@ -159,11 +157,7 @@
 
 <!-- Overdue right now -->
 <section class="report-section">
-    <h2>Items overdue right now (@Model.OverdueNow.Count)</h2>
-    <p class="section-note">
-        Not limited to the date range. Fine so far = days overdue × daily rate, up to the category's cap.
-        <a class="no-print" asp-page="/Staff/Returns" asp-route-OverdueOnly="true">Check in overdue items →</a>
-    </p>
+    <h2 class="section-title">Items overdue right now (@Model.OverdueNow.Count) <a class="section-link no-print" asp-page="/Staff/Returns" asp-route-OverdueOnly="true">Check in overdue items →</a></h2>
     @if (Model.OverdueNow.Count == 0)
     {
         <p>No items are overdue right now.</p>
@@ -198,7 +192,6 @@
 <!-- By category -->
 <section class="report-section">
     <h2>Late returns by category</h2>
-    <p class="section-note">Sorted by late rate, highest first.</p>
     @if (Model.ByCategory.Count == 0)
     {
         <p>No loans were due in this period.</p>
@@ -240,7 +233,6 @@
 <div class="report-grid-2">
     <section class="report-section">
         <h2>By borrower type</h2>
-        <p class="section-note">Students vs. faculty.</p>
         @if (Model.ByBorrowerType.Count == 0)
         {
             <p>No loans were due in this period.</p>
@@ -265,7 +257,6 @@
 
     <section class="report-section">
         <h2>Monthly late-return rate</h2>
-        <p class="section-note">By the month the loan was due.</p>
         <table class="results">
             <tr><th>Month</th><th class="num">Loans due</th><th class="num">Late</th><th class="num">Late rate</th></tr>
             @foreach (var m in Model.Monthly)
@@ -285,7 +276,6 @@
 <div class="report-grid-2">
     <section class="report-section">
         <h2>Members with repeated late returns</h2>
-        <p class="section-note">Two or more late returns in this period.</p>
         @if (Model.RepeatLateReturners.Count == 0)
         {
             <p>No member returned items late more than once.</p>
@@ -310,7 +300,6 @@
 
     <section class="report-section">
         <h2>Payments by method</h2>
-        <p class="section-note">Payments received in this period.</p>
         @if (Model.PaymentsByMethod.Count == 0)
         {
             <p>No payments were received in this period.</p>
@@ -340,7 +329,6 @@
 <!-- Fine policy -->
 <section class="report-section">
     <h2>Fine policy (reference)</h2>
-    <p class="section-note">The rates the database triggers use when an item is returned.</p>
     <table class="results">
         <tr>
             <th>Category</th><th class="num">Loan days</th><th class="num">Per day late</th>
@@ -362,6 +350,6 @@
 
 <p class="report-meta" style="font-size: 13px; color: #5f6b64;">
     Compared with the previous period @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy").
-    A loan is late if it was returned after its due date or is still out past it.
+    A loan is late if it was returned after its due date or is still out past it. "Items overdue right now" is not limited to the date range; fine so far = days overdue × daily rate, up to the category's cap.
     Generated @DateTime.Now.ToString("MMM d, yyyy h:mm tt").
 </p>

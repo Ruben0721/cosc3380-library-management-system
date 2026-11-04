@@ -1,10 +1,14 @@
+using System.ComponentModel.DataAnnotations;
+using System.Data.Common;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 using Project.Models;
 using Project.Data;
 using Project.Configuration;
-using System.Data.Common;
 
 namespace Project.Pages.Staff
 {
@@ -27,12 +31,31 @@ namespace Project.Pages.Staff
         [TempData]
         public string? ErrorMessage { get; set; }
 
+        
+        [TempData]
+        public string? TempPassword { get; set; }
+
+        [TempData]
+        public string? TempPasswordFor { get; set; }
+
         [BindProperty(SupportsGet = true)]
         public string? Search { get; set; }
+
+        
+        [BindProperty(SupportsGet = true)]
+        public string? MemberType { get; set; }
+
+      
+        [BindProperty(SupportsGet = true)]
+        public string? Login { get; set; }
 
         public List<BorrowerRow> Borrowers { get; set; } = new();
 
         public bool HasMoreResults { get; set; }
+
+        public int CountTotal { get; set; }
+        public int CountNoLogin { get; set; }
+        public int CountInactive { get; set; }
 
         public class BorrowerRow
         {
@@ -44,10 +67,25 @@ namespace Project.Pages.Staff
             public string? Role { get; set; }
             public bool? LoginIsEnabled { get; set; }
             public int? StaffId { get; set; }
+
+            public bool IsStudent { get; set; }
+            public bool IsFaculty { get; set; }
+            public string? RecordEmail { get; set; }
+
+            public string MemberType =>
+                IsStudent && IsFaculty ? "Student & Faculty"
+                : IsStudent ? "Student"
+                : IsFaculty ? "Faculty"
+                : Role ?? "—";
+
             public bool CanManage =>
                 AccountId == null ||
                 (StaffId == null &&
                  (Role == "Student" || Role == "Faculty"));
+
+            
+            public bool CanCreateLogin =>
+                AccountId == null && (IsStudent ^ IsFaculty);
         }
 
         public async Task OnGetAsync()
@@ -72,7 +110,18 @@ namespace Project.Pages.Staff
                         ? null
                         : (bool?)account.IsEnabled,
                     StaffId = account == null ? null : account.StaffId,
+                    IsStudent = _db.Students.Any(s => s.LibraryUserId == borrower.LibraryUserId),
+                    IsFaculty = _db.FacultyMembers.Any(f => f.LibraryUserId == borrower.LibraryUserId),
+                    RecordEmail = _db.Students
+                        .Where(s => s.LibraryUserId == borrower.LibraryUserId)
+                        .Select(s => s.Email)
+                        .FirstOrDefault()
                 };
+
+            
+            CountTotal = await query.CountAsync();
+            CountNoLogin = await query.CountAsync(r => r.AccountId == null);
+            CountInactive = await query.CountAsync(r => !r.BorrowerIsActive);
 
             string search = Search?.Trim() ?? "";
 
@@ -95,6 +144,18 @@ namespace Project.Pages.Staff
                     (isBorrowerId && row.LibraryUserId == borrowerId));
             }
 
+            if (MemberType == "Student")
+                query = query.Where(r => r.IsStudent);
+            else if (MemberType == "Faculty")
+                query = query.Where(r => r.IsFaculty);
+
+            if (Login == "none")
+                query = query.Where(r => r.AccountId == null);
+            else if (Login == "enabled")
+                query = query.Where(r => r.AccountId != null && r.LoginIsEnabled == true);
+            else if (Login == "disabled")
+                query = query.Where(r => r.AccountId != null && r.LoginIsEnabled == false);
+
             var results = await query
                 .OrderBy(row => row.FullName)
                 .ThenBy(row => row.LibraryUserId)
@@ -105,9 +166,117 @@ namespace Project.Pages.Staff
 
             Borrowers = results.Take(100).ToList();
         }
+
+       
+        public async Task<IActionResult> OnPostCreateLoginAsync(
+            int libraryUserId,
+            string? email)
+        {
+            email = email?.Trim() ?? "";
+
+            if (libraryUserId <= 0)
+            {
+                return BadRequest();
+            }
+
+            if (email.Length == 0 || email.Length > 255 ||
+                !new EmailAddressAttribute().IsValid(email))
+            {
+                ErrorMessage = "Enter a valid email address for the new login.";
+                return RedirectToPage(new { Search, MemberType, Login });
+            }
+
+            string normalizedEmail = email.ToUpperInvariant();
+
+            try
+            {
+                await using var transaction =
+                    await _db.Database.BeginTransactionAsync();
+
+                var borrower = await _db.LibraryUsers
+                    .SingleOrDefaultAsync(b => b.LibraryUserId == libraryUserId);
+
+                if (borrower == null)
+                {
+                    ErrorMessage = "That borrower was not found.";
+                    return RedirectToPage(new { Search, MemberType, Login });
+                }
+
+                if (await _db.UserAccounts.AnyAsync(a => a.LibraryUserId == libraryUserId))
+                {
+                    ErrorMessage = $"{borrower.FullName} already has a login.";
+                    return RedirectToPage(new { Search, MemberType, Login });
+                }
+
+                bool isStudent = await _db.Students.AnyAsync(s => s.LibraryUserId == libraryUserId);
+                bool isFaculty = await _db.FacultyMembers.AnyAsync(f => f.LibraryUserId == libraryUserId);
+
+                if (isStudent == isFaculty)
+                {
+                    ErrorMessage = isStudent
+                        ? $"{borrower.FullName} is linked to both Student and Faculty records. Review that profile first."
+                        : $"{borrower.FullName} has no Student or Faculty record, so the login role is unknown.";
+                    return RedirectToPage(new { Search, MemberType, Login });
+                }
+
+                if (await _db.UserAccounts.AnyAsync(a => a.NormalizedEmail == normalizedEmail))
+                {
+                    ErrorMessage = "That email is already used by another login.";
+                    return RedirectToPage(new { Search, MemberType, Login });
+                }
+
+                string tempPassword = GenerateTemporaryPassword();
+
+                var account = new UserAccount
+                {
+                    Email = email,
+                    NormalizedEmail = normalizedEmail,
+                    Role = isStudent ? "Student" : "Faculty",
+                    IsEnabled = true,
+                    LibraryUserId = libraryUserId,
+                    StaffId = null,
+                    FailedLoginAttempts = 0,
+                    LockoutUntilUtc = null
+                };
+
+              
+                var hasher = new PasswordHasher<UserAccount>();
+                account.PasswordHash = hasher.HashPassword(account, tempPassword);
+
+                _db.UserAccounts.Add(account);
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                StatusMessage = $"Login created for {borrower.FullName} ({account.Role}) with email {email}.";
+                TempPassword = tempPassword;
+                TempPasswordFor = borrower.FullName;
+            }
+            catch (DbUpdateException ex)
+                when (ex.InnerException is MySqlException mysql &&
+                      mysql.Number == 1062)
+            {
+                ErrorMessage = "That email or borrower already has a login.";
+            }
+            catch (Exception ex)
+                when (ex is DbException || ex is DbUpdateException)
+            {
+                _logger.LogError(ex, "Unable to create login for borrower {LibraryUserId}.", libraryUserId);
+                ErrorMessage = "The login could not be created. Refresh the page and check before trying again.";
+            }
+
+            return RedirectToPage(new { Search, MemberType, Login });
+        }
+
+        
+        private static string GenerateTemporaryPassword()
+        {
+            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+            return RandomNumberGenerator.GetString(chars, 14);
+        }
+
         public async Task<IActionResult> OnPostSetBorrowerStatusAsync(
-    int libraryUserId,
-    bool? isActive)
+            int libraryUserId,
+            bool? isActive)
         {
             if (!ModelState.IsValid ||
                 libraryUserId <= 0 ||
@@ -155,7 +324,7 @@ namespace Project.Pages.Staff
                     "to check the current status before trying again.";
             }
 
-            return RedirectToPage(new { Search });
+            return RedirectToPage(new { Search, MemberType, Login });
         }
 
         public async Task<IActionResult> OnPostSetLoginStatusAsync(
@@ -207,7 +376,7 @@ namespace Project.Pages.Staff
                     "to check the current status before trying again.";
             }
 
-            return RedirectToPage(new { Search });
+            return RedirectToPage(new { Search, MemberType, Login });
         }
     }
 }
