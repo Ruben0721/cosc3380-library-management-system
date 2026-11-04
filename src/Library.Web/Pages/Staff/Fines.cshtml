@@ -1,8 +1,6 @@
 @page
 @model Project.Pages.Staff.FinesModel
 
-<p class="no-print"><a asp-page="/Staff/Index">&larr; Back to dashboard</a></p>
-
 <section class="hero">
     <p class="eyebrow">Circulation</p>
     <h1>Fines &amp; Payments</h1>
@@ -150,7 +148,7 @@
 </div>
 
 <script>
-    
+   
     document.addEventListener('DOMContentLoaded', function () {
         var modalEl = document.getElementById('payModal');
         if (!modalEl || typeof bootstrap === 'undefined') {

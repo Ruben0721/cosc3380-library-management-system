@@ -1,0 +1,76 @@
+@*
+    Breadcrumb trail shown at the top of staff pages.
+    Included once in _Layout.cshtml:  <partial name="_Breadcrumb" />
+    To add a page: add a line to the Pages table below.
+      Key    = the page's path (file location without .cshtml)
+      Title  = what the trail shows for this page
+      Parent = the page one level up (null = directly under the dashboard)
+*@
+@{
+    var pages = new Dictionary<string, (string Title, string? Parent)>(StringComparer.OrdinalIgnoreCase)
+    {
+        // Inventory
+        ["/Inventory"]             = ("Inventory", null),
+        ["/AddInventoryItem"]      = ("Add / Edit Item", "/Inventory"),
+
+        // Users
+        ["/Staff/Users"]           = ("Manage Users", null),
+
+        // Circulation & equipment
+        ["/Checkout"]              = ("Check Out", null),
+        ["/CheckoutActivity"]      = ("Checkout Activity", null),
+        ["/BorrowerRentals"]       = ("Borrower Rentals", null),
+        ["/Staff/Returns"]         = ("Return an Item", null),
+        ["/Staff/Fines"]           = ("Fines & Payments", null),
+        ["/Staff/Maintenance"]     = ("Maintenance Requests", null),
+
+        // Reports
+        ["/CollectionPerformance"] = ("Circulation & Collection Performance", "#reports"),
+        ["/OverdueFines"]          = ("Overdue Returns & Fines", "#reports"),
+        ["/EquipmentMaintenance"]  = ("Equipment Maintenance", "#reports"),
+    };
+
+    var current = ViewContext.RouteData.Values["page"] as string;
+
+    // Build the trail from the current page up to the dashboard
+    var trail = new List<(string Title, string? Page)>();
+    var key = current;
+    while (key != null && pages.TryGetValue(key, out var entry))
+    {
+        trail.Insert(0, (entry.Title, key));
+        if (entry.Parent == "#reports")
+        {
+            trail.Insert(0, ("Reports", null));   // group label, not a page
+            break;
+        }
+        key = entry.Parent;
+    }
+}
+
+@if (current != null && pages.ContainsKey(current))
+{
+    <div role="navigation" aria-label="breadcrumb" class="crumbs no-print d-flex align-items-center gap-3 mb-3">
+        <a class="btn btn-sm btn-outline-secondary" asp-page="/Staff/Index">&larr; Dashboard</a>
+
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a asp-page="/Staff/Index">Staff Dashboard</a></li>
+            @for (int i = 0; i < trail.Count; i++)
+            {
+                var step = trail[i];
+                bool last = i == trail.Count - 1;
+                if (last)
+                {
+                    <li class="breadcrumb-item active" aria-current="page">@step.Title</li>
+                }
+                else if (step.Page != null)
+                {
+                    <li class="breadcrumb-item"><a asp-page="@step.Page">@step.Title</a></li>
+                }
+                else
+                {
+                    <li class="breadcrumb-item">@step.Title</li>
+                }
+            }
+        </ol>
+    </div>
+}
