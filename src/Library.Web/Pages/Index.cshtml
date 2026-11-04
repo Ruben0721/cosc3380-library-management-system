@@ -4,6 +4,7 @@
 }
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <link rel="stylesheet" href="~/css/home.css" asp-append-version="true">
     <meta charset="UTF-8">
@@ -22,8 +23,22 @@
                 <a asp-page="/Index" aria-current="page">Home</a>
                 <a asp-page="/Search">Library Catalog</a>
                 <a href="#about">About</a>
-                <a asp-page="/Account/Login">Log In</a>
-                <a class="signup-link" asp-page="/Account/Register">Sign Up</a>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
+                    {
+                        <a asp-page="/Staff/Index">Staff Dashboard</a>
+                    }
+
+                    <span>Signed in as @User.Identity.Name</span>
+                    <a class="signup-link" asp-page="/Account/Logout">Log Out</a>
+                }
+                else
+                {
+                    <a asp-page="/Account/Login">Log In</a>
+                    <a class="signup-link" asp-page="/Account/Register">Sign Up</a>
+                }
             </nav>
         </div>
     </header>
@@ -151,4 +166,5 @@
         <p>A fictional campus library · Student team project</p>
     </footer>
 </body>
+
 </html>
