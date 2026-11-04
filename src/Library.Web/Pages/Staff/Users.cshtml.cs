@@ -73,29 +73,31 @@ namespace Project.Pages.Staff
             public string? RecordEmail { get; set; }
 
             public string MemberType =>
-                IsStudent && IsFaculty ? "Student & Faculty"
+                StaffId.HasValue ? "Staff"
+                : IsStudent && IsFaculty ? "Student & Faculty"
                 : IsStudent ? "Student"
                 : IsFaculty ? "Faculty"
                 : Role ?? "—";
 
             public bool CanManage =>
-                AccountId == null ||
-                (StaffId == null &&
-                 (Role == "Student" || Role == "Faculty"));
+                StaffId == null && (AccountId == null || Role == "Student" || Role == "Faculty");
 
             
             public bool CanCreateLogin =>
-                AccountId == null && (IsStudent ^ IsFaculty);
+                StaffId == null && AccountId == null && (IsStudent ^ IsFaculty);
         }
 
         public async Task OnGetAsync()
         {
             var query =
                 from borrower in _db.LibraryUsers.AsNoTracking()
-                join account in _db.UserAccounts.AsNoTracking()
-                    on borrower.LibraryUserId equals account.LibraryUserId
-                    into accounts
-                from account in accounts.DefaultIfEmpty()
+                join employee in _db.StaffMembers
+                    on (int?)borrower.LibraryUserId equals employee.LibraryUserId into employees
+                from employee in employees.DefaultIfEmpty()
+                // Employee logins point to Staff. Other logins point straight to the borrower.
+                from account in _db.UserAccounts.Where(a =>
+                    (employee != null && a.StaffId == employee.StaffId) ||
+                    (employee == null && a.LibraryUserId == borrower.LibraryUserId)).DefaultIfEmpty()
                 select new BorrowerRow
                 {
                     LibraryUserId = borrower.LibraryUserId,
@@ -109,7 +111,7 @@ namespace Project.Pages.Staff
                     LoginIsEnabled = account == null
                         ? null
                         : (bool?)account.IsEnabled,
-                    StaffId = account == null ? null : account.StaffId,
+                    StaffId = employee == null ? (account == null ? null : account.StaffId) : employee.StaffId,
                     IsStudent = _db.Students.Any(s => s.LibraryUserId == borrower.LibraryUserId),
                     IsFaculty = _db.FacultyMembers.Any(f => f.LibraryUserId == borrower.LibraryUserId),
                     RecordEmail = _db.Students
@@ -148,6 +150,8 @@ namespace Project.Pages.Staff
                 query = query.Where(r => r.IsStudent);
             else if (MemberType == "Faculty")
                 query = query.Where(r => r.IsFaculty);
+            else if (MemberType == "Staff")
+                query = query.Where(r => r.StaffId != null);
 
             if (Login == "none")
                 query = query.Where(r => r.AccountId == null);
@@ -201,6 +205,9 @@ namespace Project.Pages.Staff
                     ErrorMessage = "That borrower was not found.";
                     return RedirectToPage(new { Search, MemberType, Login });
                 }
+
+                if (await _db.StaffMembers.AnyAsync(s => s.LibraryUserId == libraryUserId))
+                    return Forbid();
 
                 if (await _db.UserAccounts.AnyAsync(a => a.LibraryUserId == libraryUserId))
                 {
@@ -291,6 +298,7 @@ namespace Project.Pages.Staff
             {
                 int changed = await _db.LibraryUsers
                     .Where(b => b.LibraryUserId == libraryUserId)
+                    .Where(b => !_db.StaffMembers.Any(s => s.LibraryUserId == b.LibraryUserId))
                     .Where(b => !_db.UserAccounts.Any(a =>
                         a.LibraryUserId == b.LibraryUserId &&
                         (a.StaffId != null ||
@@ -347,6 +355,7 @@ namespace Project.Pages.Staff
                         a.LibraryUserId == libraryUserId &&
                         a.StaffId == null &&
                         (a.Role == "Student" || a.Role == "Faculty"))
+                    .Where(a => !_db.StaffMembers.Any(s => s.LibraryUserId == libraryUserId))
                     .Where(a => a.IsEnabled != desiredStatus)
                     .ExecuteUpdateAsync(updates => updates
                         .SetProperty(a => a.IsEnabled, desiredStatus));

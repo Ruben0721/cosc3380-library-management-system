@@ -118,7 +118,7 @@ namespace Project.Pages.Staff
                     return "Invalid Staff ID.";
                 }
 
-                _staff = await _db.StaffMembers
+                _staff = await _db.StaffMembers.Include(s => s.Borrower)
                     .SingleOrDefaultAsync(s => s.StaffId == staffId);
 
                 if (_staff == null)
@@ -396,6 +396,10 @@ namespace Project.Pages.Staff
                     _staff.Role = Input.Position!;
                     _staff.StartDate = Input.StartDate!.Value.Date;
                     _staff.Email = Input.Email;
+
+                    // EF saves the borrower and links its generated ID in this transaction
+                    _staff.Borrower ??= new LibraryUser { IsActive = _staff.IsActive };
+                    _staff.Borrower.FullName = $"{_staff.FirstName} {_staff.LastName}";
                 }
                 else
                 {
