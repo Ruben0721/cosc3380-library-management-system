@@ -16,8 +16,8 @@ ClaimsPrincipal Actor(string role, bool authenticated = true) => new(new ClaimsI
 foreach (var role in new[] { "Student", "Faculty", "Staff", "Admin", "Unknown" })
 foreach (var target in new[] { "Student", "Faculty", "Staff", "Admin", "Unknown" })
 {
-    bool expected = (role == "Staff" && target == "Faculty") ||
-                    (role == "Admin" && (target == "Faculty" || target == "Staff"));
+    bool expected = (role == "Staff" && (target == "Student" || target == "Faculty")) ||
+                    (role == "Admin" && (target == "Student" || target == "Faculty" || target == "Staff"));
     Check(AccountAccessRules.CanResetPassword(Actor(role), target) == expected,
         $"Reset permission: {role} -> {target}");
     Check(!AccountAccessRules.CanResetPassword(Actor(role, false), target), "Anonymous reset denied");

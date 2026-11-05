@@ -13,10 +13,11 @@ namespace Project.Auth
             int.TryParse(principal?.FindFirstValue("session_version"), out var version)
             && version == account.SessionVersion;
 
-        //staff can reset faculty passwords and admins can also reset staff passwords
+        // Staff can reset students and faculty. Admins can also reset staff.
         public static bool CanResetPassword(ClaimsPrincipal actor, string? targetRole) =>
             actor.Identity?.IsAuthenticated == true &&
-            ((targetRole == "Faculty" && (actor.IsInRole("Staff") || actor.IsInRole("Admin")))
+            (((targetRole == "Student" || targetRole == "Faculty") &&
+              (actor.IsInRole("Staff") || actor.IsInRole("Admin")))
              || (targetRole == "Staff" && actor.IsInRole("Admin")));
 
         // Staff cannot edit an Admin account or make someone an Admin
