@@ -26,6 +26,8 @@
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
+                    <a asp-page="/Account/MyLibrary">My Library Account</a>
+
                     @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
                     {
                         <a asp-page="/Staff/Index">Staff Dashboard</a>
