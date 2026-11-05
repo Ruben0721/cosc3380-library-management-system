@@ -1,0 +1,83 @@
+@page
+@model Project.Pages.Account.MyLibraryModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "My Library Account";
+    var dollars = CultureInfo.GetCultureInfo("en-US");
+}
+
+<h1>My Library Account</h1>
+<p><strong>@Model.FullName</strong> &middot; @Model.Role &middot; @Model.Email</p>
+
+@if (Model.FullName == null)
+{
+    <p class="alert alert-warning">Contact library staff to link your borrower record and view your library activity.</p>
+}
+else
+{
+    <section class="mb-4">
+        <h2 class="h4">Items checked out</h2>
+        @if (Model.Loans.Count == 0)
+        {
+            <p>You have no items checked out.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead><tr><th>Item</th><th>Due date</th></tr></thead>
+                <tbody>
+                @foreach (var loan in Model.Loans)
+                {
+                    <tr><td>@(loan.Item ?? "Item name unavailable")</td>
+                        <td>@(loan.Due?.ToString("MMM d, yyyy") ?? "No due date")
+                            @if (loan.Due < DateTime.Today)
+                            {
+                                <strong class="text-danger">Overdue</strong>
+                            }
+                        </td></tr>
+                }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h4">Requested holds</h2>
+        @if (Model.Holds.Count == 0)
+        {
+            <p>You have no active holds.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead><tr><th>Item</th><th>Status</th><th>Pickup deadline</th></tr></thead>
+                <tbody>
+                @foreach (var hold in Model.Holds)
+                {
+                    <tr><td>@(hold.Item ?? "Item name unavailable")</td>
+                        <td>@(hold.Status == "Ready" ? "Ready for pickup" : hold.Status)</td>
+                        <td>@(hold.Deadline?.ToString("MMM d, yyyy") ?? "—")</td></tr>
+                }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    <section>
+        <h2 class="h4">Fines due</h2>
+        <p>Total owed: <strong>@Model.TotalDue.ToString("C", dollars)</strong></p>
+        @if (Model.Fines.Count > 0)
+        {
+            <table class="table">
+                <thead><tr><th>Item</th><th>Reason</th><th>Amount</th></tr></thead>
+                <tbody>
+                @foreach (var fine in Model.Fines)
+                {
+                    <tr><td>@(fine.Item ?? "Item name unavailable")</td><td>@fine.Reason</td>
+                        <td>@fine.Amount.ToString("C", dollars)</td></tr>
+                }
+                </tbody>
+            </table>
+        }
+    </section>
+}

@@ -28,6 +28,12 @@
                             <a class="nav-link text-dark" asp-page="/Search">Catalog</a>
                         </li>
 
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-page="/Account/MyLibrary">My Library Account</a>
+                            </li>
+                        }
                         @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
