@@ -52,4 +52,22 @@ Check(!Valid("short", "short"), "Short password rejected");
 Check(!Valid(new string('a', 129), new string('a', 129)), "Long password rejected");
 Check(!Valid("TwelveChars12", "Different123"), "Mismatch rejected");
 Check(Valid("TwelveChars12", "TwelveChars12"), "Valid password accepted");
-Console.WriteLine($"Passed {checks} authentication and reset validation checks. No database accessed.");
+bool ValidChange(string current, string password, string confirmation)
+{
+    var input = new Project.Pages.Account.ChangePasswordModel.ChangeInput
+    {
+        CurrentPassword = current,
+        NewPassword = password,
+        ConfirmPassword = confirmation
+    };
+    return Validator.TryValidateObject(input, new ValidationContext(input), new List<ValidationResult>(), true);
+}
+Check(!ValidChange("", "TwelveChars12", "TwelveChars12"), "Current password required");
+Check(!ValidChange("OldPassword12", "short", "short"), "Short new password rejected");
+Check(!ValidChange("OldPassword12", new string('a', 129), new string('a', 129)), "Long new password rejected");
+Check(!ValidChange("OldPassword12", "TwelveChars12", "Different123"), "Change confirmation mismatch rejected");
+Check(!ValidChange("OldPassword12", "OldPassword12", "OldPassword12"), "Reusing current password rejected");
+Check(ValidChange("OldPassword12", "TwelveChars12", "TwelveChars12"), "Valid change accepted");
+Check(Attribute.IsDefined(typeof(Project.Pages.Account.ChangePasswordModel),
+    typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute)), "Change password requires authentication");
+Console.WriteLine($"Passed {checks} authentication and password validation checks. No database accessed.");
