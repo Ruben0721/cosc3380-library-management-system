@@ -84,28 +84,6 @@
                            class="form-control" />
                 </div>
             }
-            else
-            {
-                <div class="col-md-6">
-                    <label asp-for="Input.RentalLimit"
-                           class="form-label"></label>
-                    <input asp-for="Input.RentalLimit"
-                           class="form-control"
-                           min="0" />
-                </div>
-
-                <div class="col-md-6">
-                    <label asp-for="Input.WaitlistLimit"
-                           class="form-label"></label>
-                    <input asp-for="Input.WaitlistLimit"
-                           class="form-control"
-                           min="0" />
-                </div>
-
-                <div class="col-12 form-text">
-                    A blank limit is stored as NULL; zero is stored as zero.
-                </div>
-            }
         </div>
     </fieldset>
 
