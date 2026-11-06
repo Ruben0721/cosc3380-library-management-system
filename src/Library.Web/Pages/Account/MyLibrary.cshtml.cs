@@ -17,9 +17,13 @@ public class MyLibraryModel(LibraryDbContext db) : PageModel
     public record Loan(string? Item, DateTime? Due);
     public record HoldRow(string? Item, string Status, DateTime? Deadline);
     public record FineRow(string? Item, string Reason, decimal Amount);
+    public record RoomReservationRow(string ReservationId, string RoomId,
+        DateTime StartTime, DateTime EndTime, int NumberOfPeople,
+        string Purpose, string Status);
     public List<Loan> Loans { get; private set; } = new();
     public List<HoldRow> Holds { get; private set; } = new();
     public List<FineRow> Fines { get; private set; } = new();
+    public List<RoomReservationRow> RoomReservations { get; private set; } = new();
     public decimal TotalDue => Fines.Sum(f => f.Amount);
 
     public async Task<IActionResult> OnGetAsync()
@@ -64,6 +68,20 @@ public class MyLibraryModel(LibraryDbContext db) : PageModel
                                            join i in db.Inventory on r.ItemId equals i.Id
                                            where r.RentalId == f.RentalId && r.LibraryUserId == borrowerId
                                            select i.Name).FirstOrDefault(), f.FineType, f.Amount)).ToListAsync();
+
+        RoomReservations = await db.RoomReservations.AsNoTracking()
+            .Where(r => r.LibraryUserId == borrowerId)
+            .OrderBy(r => r.Status == "Cancelled")
+            .ThenBy(r => r.StartTime)
+            .Select(r => new RoomReservationRow(
+                r.ReservationId,
+                r.RoomId,
+                r.StartTime,
+                r.EndTime,
+                r.NumberOfPeople,
+                r.Purpose,
+                r.Status))
+            .ToListAsync();
         return Page();
     }
 }

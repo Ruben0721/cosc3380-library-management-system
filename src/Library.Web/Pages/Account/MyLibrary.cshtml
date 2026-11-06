@@ -65,6 +65,44 @@ else
     </section>
 
     <section>
+        <h2 class="h4">Room reservations</h2>
+        <p><a asp-page="/RoomReservations">Reserve a room or view all reservations</a></p>
+        @if (Model.RoomReservations.Count == 0)
+        {
+            <p>You have no room reservations.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Room</th>
+                        <th>When</th>
+                        <th>People</th>
+                        <th>Purpose</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var reservation in Model.RoomReservations)
+                {
+                    <tr>
+                        <td>@reservation.RoomId</td>
+                        <td>
+                            @reservation.StartTime.ToString("MMM d, yyyy h:mm tt")<br />
+                            to @reservation.EndTime.ToString("h:mm tt")
+                        </td>
+                        <td>@reservation.NumberOfPeople</td>
+                        <td>@reservation.Purpose</td>
+                        <td>@reservation.Status</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    <section>
         <h2 class="h4">Fines due</h2>
         <p>Total owed: <strong>@Model.TotalDue.ToString("C", dollars)</strong></p>
         @if (Model.Fines.Count > 0)

@@ -1,0 +1,179 @@
+@page
+@model Project.Pages.RoomReservationsModel
+@{
+	ViewData["Title"] = "Room Reservations";
+}
+
+<div class="report-header">
+	<div>
+		<p class="eyebrow">Library spaces</p>
+		<h1>Room Reservations</h1>
+		<p class="report-lede">Reserve an active study or meeting room for groups of one or more.</p>
+	</div>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+	<div class="alert alert-success">@message</div>
+}
+@if (TempData["Error"] is string error)
+{
+	<div class="alert alert-danger">@error</div>
+}
+
+<section class="overview mb-4">
+	<h2>Reserve a room</h2>
+	<p class="text-muted">Reservations are available to signed-in users. The room must be active, available, and large enough for your group.</p>
+
+	<form method="post" asp-page-handler="Create">
+		<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+		<div class="row g-3">
+			@if (Model.IsStaff)
+			{
+				<div class="col-md-4">
+					<label asp-for="Input.ReserveForLibraryUserId" class="form-label"></label>
+					<select asp-for="Input.ReserveForLibraryUserId" class="form-select">
+						<option value="">Reserve for myself</option>
+						@foreach (var member in Model.Members)
+						{
+							<option value="@member.LibraryUserId">@member.FullName</option>
+						}
+					</select>
+					<span asp-validation-for="Input.ReserveForLibraryUserId" class="text-danger"></span>
+				</div>
+			}
+
+			<div class="col-md-4">
+				<label asp-for="Input.RoomId" class="form-label"></label>
+				<select asp-for="Input.RoomId" class="form-select">
+					<option value="">Choose a room</option>
+					@foreach (var room in Model.Rooms)
+					{
+						<option value="@room.RoomId" data-capacity="@room.Capacity">@room.RoomId — capacity @room.Capacity</option>
+					}
+				</select>
+				<span asp-validation-for="Input.RoomId" class="text-danger"></span>
+			</div>
+
+			<div class="col-md-4">
+				<label asp-for="Input.StartTime" class="form-label"></label>
+				<input asp-for="Input.StartTime" type="datetime-local" class="form-control" />
+				<span asp-validation-for="Input.StartTime" class="text-danger"></span>
+			</div>
+
+			<div class="col-md-4">
+				<label asp-for="Input.EndTime" class="form-label"></label>
+				<input asp-for="Input.EndTime" type="datetime-local" class="form-control" />
+				<span asp-validation-for="Input.EndTime" class="text-danger"></span>
+			</div>
+
+			<div class="col-md-4">
+				<label asp-for="Input.NumberOfPeople" class="form-label"></label>
+				<input asp-for="Input.NumberOfPeople" class="form-control" min="1" />
+				<span asp-validation-for="Input.NumberOfPeople" class="text-danger"></span>
+			</div>
+
+			<div class="col-md-8">
+				<label asp-for="Input.Purpose" class="form-label"></label>
+				<input asp-for="Input.Purpose" class="form-control" maxlength="200"
+					   placeholder="For example: study group or tutoring session" />
+				<span asp-validation-for="Input.Purpose" class="text-danger"></span>
+			</div>
+		</div>
+
+		<button type="submit" class="btn btn-primary mt-3">Reserve room</button>
+	</form>
+</section>
+
+<section>
+	<h2>@(Model.IsStaff ? "Reservations" : "My reservations")</h2>
+
+	@if (Model.Reservations.Count == 0)
+	{
+		<p>No reservations to display.</p>
+	}
+	else
+	{
+		<div class="table-responsive">
+			<table class="results">
+				<thead>
+					<tr>
+						<th>Room</th>
+						<th>When</th>
+						<th>People</th>
+						<th>Purpose</th>
+						@if (Model.IsStaff)
+						{
+							<th>Reserved by</th>
+						}
+						<th>Status</th>
+						<th>Action</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var reservation in Model.Reservations)
+					{
+						<tr>
+							<td>@reservation.RoomId</td>
+							<td>@reservation.StartTime.ToString("MMM d, yyyy h:mm tt")<br />to @reservation.EndTime.ToString("h:mm tt")</td>
+							<td>@reservation.NumberOfPeople</td>
+							<td>@reservation.Purpose</td>
+							@if (Model.IsStaff)
+							{
+								<td>@reservation.Owner</td>
+							}
+							<td>@reservation.Status</td>
+							<td>
+								@if (reservation.Status == "Confirmed")
+								{
+									<form method="post" asp-page-handler="Cancel"
+										  onsubmit="return confirm('Cancel this reservation?');">
+										<input type="hidden" name="reservationId" value="@reservation.ReservationId" />
+										<button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+									</form>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+</section>
+
+@section Scripts {
+	<partial name="_ValidationScriptsPartial" />
+	<script>
+		(() => {
+			const peopleInput = document.getElementById('Input_NumberOfPeople');
+			const roomSelect = document.getElementById('Input_RoomId');
+			if (!peopleInput || !roomSelect) return;
+
+			function updateRoomOptions() {
+				const people = Number(peopleInput.value) || 1;
+				let recommended = null;
+
+				for (const option of roomSelect.options) {
+					if (!option.value) continue;
+
+					const capacity = Number(option.dataset.capacity);
+					option.disabled = capacity < people;
+					option.textContent = `${option.value} — capacity ${capacity}`;
+
+					if (capacity >= people && recommended === null)
+						recommended = option;
+				}
+
+				if (!roomSelect.value || roomSelect.selectedOptions[0]?.disabled)
+					roomSelect.value = recommended?.value ?? '';
+
+				if (recommended)
+					recommended.textContent += ' — Recommended';
+			}
+
+			peopleInput.addEventListener('input', updateRoomOptions);
+			updateRoomOptions();
+		})();
+	</script>
+}

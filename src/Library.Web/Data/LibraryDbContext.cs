@@ -23,6 +23,9 @@ namespace Project.Data
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<FinePolicy> FinePolicies => Set<FinePolicy>();
         public DbSet<MaintenanceRequest> MaintenanceRequests => Set<MaintenanceRequest>();
+        public DbSet<Room> Rooms => Set<Room>();
+        public DbSet<RoomReservation> RoomReservations => Set<RoomReservation>();
+        public DbSet<RoomSetupTask> RoomSetupTasks => Set<RoomSetupTask>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -50,7 +53,30 @@ namespace Project.Data
             modelBuilder.Entity<HeadPhones>().ToTable("Headphones");
             modelBuilder.Entity<Media>().ToTable("Media");
             modelBuilder.Entity<LibraryUser>().ToTable("Libraryuser");
-            
+            modelBuilder.Entity<Room>().ToTable("Room");
+            modelBuilder.Entity<RoomReservation>().ToTable("Room_reservation");
+            modelBuilder.Entity<RoomSetupTask>().ToTable("Room_setup_task");
+
+            modelBuilder.Entity<RoomReservation>()
+                .HasOne(r => r.Room)
+                .WithMany()
+                .HasForeignKey(r => r.RoomId);
+
+            modelBuilder.Entity<RoomReservation>()
+                .HasOne(r => r.LibraryUser)
+                .WithMany()
+                .HasForeignKey(r => r.LibraryUserId);
+
+            modelBuilder.Entity<RoomSetupTask>()
+                .HasOne(t => t.Room)
+                .WithMany()
+                .HasForeignKey(t => t.RoomId);
+
+            modelBuilder.Entity<RoomSetupTask>()
+                .HasOne(t => t.Reservation)
+                .WithMany()
+                .HasForeignKey(t => t.ReservationId);
+
             base.OnModelCreating(modelBuilder);
         }
 
