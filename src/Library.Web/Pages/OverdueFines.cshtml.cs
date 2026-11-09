@@ -7,7 +7,7 @@ using Project.Models;
 
 namespace Project.Pages
 {
-   
+    
     public record LateGroupRow(string Group, int Due, int Late, int StillOverdue,
                                double LateRate, double AvgDaysLate, decimal Fines);
 
@@ -23,18 +23,22 @@ namespace Project.Pages
 
     public record LateMonthRow(string Month, int Due, int Late, double LateRate);
 
+    // Money per month: fines charged, payments received, and what is still unpaid
+    public record FineMonthRow(string Month, int FinesCount, decimal Assessed,
+                               int PaymentsCount, decimal Collected, decimal StillUnpaid);
+
     public class OverdueFinesModel : PageModel
     {
         private readonly LibraryDbContext _db;
         public OverdueFinesModel(LibraryDbContext db) => _db = db;
 
-        // ----- Filters -----
+       
         [BindProperty(SupportsGet = true)] public DateTime? From { get; set; }
         [BindProperty(SupportsGet = true)] public DateTime? To { get; set; }
         [BindProperty(SupportsGet = true)] public string? Category { get; set; }
         [BindProperty(SupportsGet = true)] public string? BorrowerType { get; set; }   // "", "Student", "Faculty"
 
-        // ----- Summary metrics -----
+      
         public int LoansDue { get; set; }
         public int ReturnedOnTime { get; set; }
         public int ReturnedLate { get; set; }
@@ -50,12 +54,13 @@ namespace Project.Pages
         public DateTime PrevFrom { get; set; }
         public DateTime PrevTo { get; set; }
 
-        // ----- Report sections -----
+      
         public List<LateGroupRow> ByCategory { get; set; } = new();
         public List<LateGroupRow> ByBorrowerType { get; set; } = new();
         public List<FineTypeRow> FinesByType { get; set; } = new();
         public List<PaymentMethodRow> PaymentsByMethod { get; set; } = new();
         public List<LateMonthRow> Monthly { get; set; } = new();
+        public List<FineMonthRow> MonthlyFines { get; set; } = new();
         public List<LateRepeatRow> RepeatLateReturners { get; set; } = new();
         public List<OverdueNowRow> OverdueNow { get; set; } = new();
         public List<FinePolicy> Policies { get; set; } = new();
@@ -72,7 +77,7 @@ namespace Project.Pages
 
         public async Task OnGetAsync()
         {
-            // Default period: the last 90 days 
+          
             From ??= DateTime.Today.AddDays(-90);
             To ??= DateTime.Today;
             var start = From.Value.Date;
@@ -83,7 +88,7 @@ namespace Project.Pages
             PrevFrom = start - length;
             PrevTo = start.AddDays(-1);
 
-            // ---- Lookups ----
+            
             var names = await _db.LibraryUsers.AsNoTracking()
                 .ToDictionaryAsync(u => u.LibraryUserId, u => u.FullName);
             var studentIds = (await _db.Students.AsNoTracking().Select(s => s.LibraryUserId).ToListAsync()).ToHashSet();
@@ -97,7 +102,7 @@ namespace Project.Pages
             Policies = await _db.FinePolicies.AsNoTracking().OrderBy(p => p.ItemType).ToListAsync();
             var policyByType = Policies.ToDictionary(p => p.ItemType);
 
-            // ---- All loans, with category and borrower type ----
+          
             var loans = (await _db.Rentals.AsNoTracking()
                     .Select(r => new { r.RentalId, r.ItemId, r.LibraryUserId, r.StartDate, r.EndDate, r.ReturnedDate })
                     .ToListAsync())
@@ -121,11 +126,11 @@ namespace Project.Pages
             var filtered = loans.Where(MatchesFilters).ToList();
             var loanById = loans.ToDictionary(l => l.RentalId);
 
-            // Late 
+            
             bool IsLate(Loan l) => l.Returned != null ? l.Returned.Value.Date > l.Due.Date : l.Due < now;
             int DaysLate(Loan l) => ((l.Returned ?? now).Date - l.Due.Date).Days;
 
-            //Loans due in the period 
+         
             var due = filtered.Where(l => l.Due >= start && l.Due < end).ToList();
             var late = due.Where(IsLate).ToList();
 
@@ -139,7 +144,7 @@ namespace Project.Pages
             var prevDue = filtered.Where(l => l.Due >= PrevFrom && l.Due < start).ToList();
             PrevLateRate = prevDue.Count == 0 ? 0 : 100.0 * prevDue.Count(IsLate) / prevDue.Count;
 
-            //Fines assessed in the period
+          
             var fines = (await _db.Fines.AsNoTracking()
                     .Where(f => f.DateAssessed >= start && f.DateAssessed < end)
                     .ToListAsync())
@@ -165,7 +170,7 @@ namespace Project.Pages
                 return fines.Where(f => ids.Contains(f.RentalId)).Sum(f => f.Amount);
             }
 
-            // Payments received in the period
+         
             var fineById = await _db.Fines.AsNoTracking().ToDictionaryAsync(f => f.FineId);
             var payments = (await _db.Payments.AsNoTracking()
                     .Where(p => p.PaymentDate >= start && p.PaymentDate < end)
@@ -188,7 +193,7 @@ namespace Project.Pages
                 .OrderByDescending(r => r.Amount)
                 .ToList();
 
-            // Late returns
+            
             LateGroupRow GroupRow(string label, List<Loan> g)
             {
                 var gl = g.Where(IsLate).ToList();
@@ -208,16 +213,24 @@ namespace Project.Pages
                 .OrderByDescending(r => r.LateRate)
                 .ToList();
 
-            //  Monthly trend 
+            
             for (var m = new DateTime(start.Year, start.Month, 1); m < end; m = m.AddMonths(1))
             {
                 var g = due.Where(l => l.Due.Year == m.Year && l.Due.Month == m.Month).ToList();
                 int lateCount = g.Count(IsLate);
                 Monthly.Add(new LateMonthRow(m.ToString("MMM yyyy"), g.Count, lateCount,
                     g.Count == 0 ? 0 : 100.0 * lateCount / g.Count));
+
+                
+                var monthFines = fines.Where(f => f.DateAssessed.Year == m.Year && f.DateAssessed.Month == m.Month).ToList();
+                var monthPayments = payments.Where(p => p.PaymentDate.Year == m.Year && p.PaymentDate.Month == m.Month).ToList();
+                MonthlyFines.Add(new FineMonthRow(m.ToString("MMM yyyy"),
+                    monthFines.Count, monthFines.Sum(f => f.Amount),
+                    monthPayments.Count, monthPayments.Sum(p => p.Amount),
+                    monthFines.Where(f => !f.IsPaid).Sum(f => f.Amount)));
             }
 
-            // Members with more than 2 late returns in the period 
+           
             RepeatLateReturners = late
                 .GroupBy(l => l.LibraryUserId)
                 .Where(g => g.Count() >= 2)
@@ -234,7 +247,7 @@ namespace Project.Pages
                 .OrderByDescending(r => r.LateReturns).ThenByDescending(r => r.Unpaid)
                 .ToList();
 
-            // Items overdue 
+           
             OverdueNow = filtered
                 .Where(l => l.Returned == null && l.Due < now)
                 .Select(l =>
@@ -253,7 +266,7 @@ namespace Project.Pages
             BuildRecommendations(policyByType);
         }
 
-        // Category 
+        
         private static string LabelOf(string type)
         {
             foreach (var t in LibraryOptions.Types)
@@ -270,7 +283,7 @@ namespace Project.Pages
 
         private void BuildRecommendations(Dictionary<string, FinePolicy> policyByType)
         {
-            // Categories returned late 
+            // Categories returned late much more often than average
             foreach (var c in ByCategory.Where(c => c.Late >= 2 && LateRate > 0 && c.LateRate >= LateRate * 1.5))
             {
                 var type = ValueOf(c.Group);
@@ -279,7 +292,7 @@ namespace Project.Pages
                                     "Consider a shorter loan period, a due-date reminder, or a higher daily rate.");
             }
 
-            // Students vs faculty
+            
             var s = ByBorrowerType.FirstOrDefault(r => r.Group == "Student");
             var f = ByBorrowerType.FirstOrDefault(r => r.Group == "Faculty");
             if (s != null && f != null && Math.Abs(s.LateRate - f.LateRate) >= 15)
@@ -290,22 +303,22 @@ namespace Project.Pages
                                     $"Target reminders and outreach at {worse.Group.ToLower()} borrowers.");
             }
 
-            
+            // Fine collection
             if (FinesAssessed > 0 && CollectionRate < 60)
                 Recommendations.Add($"Only {CollectionRate:0}% of fines assessed in this period were paid (${FinesOutstanding:0.00} outstanding). " +
                                     "Send fine notices and consider blocking new checkouts for members with unpaid balances.");
 
-           
+            // Repeat late returners
             if (RepeatLateReturners.Count > 0)
                 Recommendations.Add($"{RepeatLateReturners.Count} member(s) returned items late two or more times. " +
                                     "Consider a warning notice or a temporary reduction of their rental limit.");
 
-            
+            // Items overdue right now
             if (OverdueNow.Count > 0)
                 Recommendations.Add($"{OverdueNow.Count} item(s) are overdue right now, with ${OverdueNow.Sum(o => o.EstimatedFine):0.00} in fines accruing. " +
                                     "Contact these borrowers.");
 
-            
+            // Trend vs previous period
             if (PrevLateRate > 0 && LateRate - PrevLateRate >= 10)
                 Recommendations.Add($"The late-return rate rose from {PrevLateRate:0}% to {LateRate:0}% vs. the previous period.");
             else if (PrevLateRate > 0 && PrevLateRate - LateRate >= 10)

@@ -272,7 +272,37 @@
     </section>
 </div>
 
+<!-- Monthly fines and collections -->
+<section class="report-section">
+    <h2>Fines charged and collected by month</h2>
+    <table class="results">
+        <tr>
+            <th>Month</th><th class="num">Fines</th><th class="num">Charged</th>
+            <th class="num">Payments</th><th class="num">Collected</th><th class="num">Still unpaid</th>
+        </tr>
+        @foreach (var m in Model.MonthlyFines)
+        {
+            <tr>
+                <td>@m.Month</td>
+                <td class="num">@m.FinesCount</td>
+                <td class="num">@m.Assessed.ToString("C")</td>
+                <td class="num">@m.PaymentsCount</td>
+                <td class="num">@m.Collected.ToString("C")</td>
+                <td class="num">@(m.StillUnpaid == 0 ? "—" : m.StillUnpaid.ToString("C"))</td>
+            </tr>
+        }
+        <tr class="total">
+            <td>Total</td>
+            <td class="num">@Model.MonthlyFines.Sum(m => m.FinesCount)</td>
+            <td class="num">@Model.MonthlyFines.Sum(m => m.Assessed).ToString("C")</td>
+            <td class="num">@Model.MonthlyFines.Sum(m => m.PaymentsCount)</td>
+            <td class="num">@Model.MonthlyFines.Sum(m => m.Collected).ToString("C")</td>
+            <td class="num">@Model.MonthlyFines.Sum(m => m.StillUnpaid).ToString("C")</td>
+        </tr>
+    </table>
+</section>
 
+<!-- Repeat late returners + payments side by side -->
 <div class="report-grid-2">
     <section class="report-section">
         <h2>Members with repeated late returns</h2>
@@ -350,6 +380,6 @@
 
 <p class="report-meta" style="font-size: 13px; color: #5f6b64;">
     Compared with the previous period @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy").
-    A loan is late if it was returned after its due date or is still out past it. "Items overdue right now" is not limited to the date range; fine so far = days overdue × daily rate, up to the category's cap.
+    A loan is late if it was returned after its due date or is still out past it. Collected = payments received that month; still unpaid = that month's fines not yet paid. "Items overdue right now" is not limited to the date range; fine so far = days overdue × daily rate, up to the category's cap.
     Generated @DateTime.Now.ToString("MMM d, yyyy h:mm tt").
 </p>
