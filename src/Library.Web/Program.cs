@@ -5,6 +5,22 @@ using Project.Configuration;
 using System;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Project.Auth;
+using System.Globalization;
+
+
+CultureInfo culture;
+try
+{
+    culture = new CultureInfo("en-US");
+}
+catch (CultureNotFoundException)
+{
+  
+    culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+    culture.NumberFormat.CurrencySymbol = "$";
+}
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 var builder = WebApplication.CreateBuilder(args);
 
