@@ -6,67 +6,45 @@
         ["/Inventory"]             = ("Inventory", null),
         ["/AddInventoryItem"]      = ("Add / Edit Item", "/Inventory"),
 
-        // Users
+        // Members
         ["/Staff/Users"]           = ("Manage Users", null),
+        ["/Staff/Directory"]       = ("Staff & Faculty Directory", "/Staff/Users"),
+        ["/Staff/ManagePerson"]    = ("Person", "/Staff/Directory"),
+        ["/BorrowerRentals"]       = ("Rental History", "/Staff/Users"),
 
         // Circulation & equipment
-        ["/Staff/StartCheckout"]  = ("Check Out", null),
+        ["/Staff/StartCheckout"]   = ("Check Out", null),
         ["/Checkout"]              = ("Choose Borrower", "/Staff/StartCheckout"),
         ["/CheckoutActivity"]      = ("Checkout Activity", null),
-        ["/BorrowerRentals"]       = ("Rental History", "/Staff/Users"),
         ["/Staff/Returns"]         = ("Return an Item", null),
         ["/Staff/Fines"]           = ("Fines & Payments", null),
         ["/Staff/Maintenance"]     = ("Maintenance Requests", null),
-        ["/RoomReservations"]      = ("Room Reservations", null),
-        ["/Staff/RoomSetupTasks"]  = ("Room Setup Tasks", "/RoomReservations"),
 
         // Reports
-        ["/CollectionPerformance"] = ("Circulation & Collection Performance", "#reports"),
-        ["/OverdueFines"]          = ("Overdue Returns & Fines", "#reports"),
-        ["/EquipmentMaintenance"]  = ("Equipment Maintenance", "#reports"),
+        ["/CollectionPerformance"] = ("Circulation & Collection Performance", null),
+        ["/OverdueFines"]          = ("Overdue Returns & Fines", null),
+        ["/EquipmentMaintenance"]  = ("Equipment Maintenance", null),
     };
 
     var current = ViewContext.RouteData.Values["page"] as string;
+    string? parentPage = null;
+    string parentTitle = "Staff Dashboard";
+    bool show = current != null && pages.TryGetValue(current, out var entry) && Set(entry.Parent);
 
-    
-    var trail = new List<(string Title, string? Page)>();
-    var key = current;
-    while (key != null && pages.TryGetValue(key, out var entry))
+    bool Set(string? parent)
     {
-        trail.Insert(0, (entry.Title, key));
-        if (entry.Parent == "#reports")
+        if (parent != null && pages.TryGetValue(parent, out var p))
         {
-            trail.Insert(0, ("Reports", null));   // group label, not a page
-            break;
+            parentPage = parent;
+            parentTitle = p.Title;
         }
-        key = entry.Parent;
+        return true;
     }
 }
 
-@if (current != null && pages.ContainsKey(current))
+@if (show)
 {
-    <div role="navigation" aria-label="breadcrumb" class="crumbs no-print d-flex align-items-center gap-3 mb-3">
-        <a class="btn btn-sm btn-outline-secondary" asp-page="/Staff/Index">&larr; Dashboard</a>
-
-        <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a asp-page="/Staff/Index">Staff Dashboard</a></li>
-            @for (int i = 0; i < trail.Count; i++)
-            {
-                var step = trail[i];
-                bool last = i == trail.Count - 1;
-                if (last)
-                {
-                    <li class="breadcrumb-item active" aria-current="page">@step.Title</li>
-                }
-                else if (step.Page != null)
-                {
-                    <li class="breadcrumb-item"><a asp-page="@step.Page">@step.Title</a></li>
-                }
-                else
-                {
-                    <li class="breadcrumb-item">@step.Title</li>
-                }
-            }
-        </ol>
+    <div class="crumbs no-print" role="navigation" aria-label="Back">
+        <a class="back-link" asp-page="@(parentPage ?? "/Staff/Index")">&larr; @parentTitle</a>
     </div>
 }
