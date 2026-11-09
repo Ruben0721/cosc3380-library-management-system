@@ -10,6 +10,11 @@ namespace Project.Models
         [Column("Staff_Id")]
         public int StaffId { get; set; }
 
+        public int? LibraryUserId { get; set; }
+
+        [ForeignKey(nameof(LibraryUserId))]
+        public LibraryUser? Borrower { get; set; }
+
         [Required]
         [StringLength(30)]
         public string FirstName { get; set; } = "";

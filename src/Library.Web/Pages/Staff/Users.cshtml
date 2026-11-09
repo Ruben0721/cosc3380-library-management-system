@@ -59,6 +59,7 @@
             <option value="">All</option>
             <option value="Student" selected="@(Model.MemberType == "Student")">Student</option>
             <option value="Faculty" selected="@(Model.MemberType == "Faculty")">Faculty</option>
+            <option value="Staff" selected="@(Model.MemberType == "Staff")">Staff (includes Admin)</option>
         </select>
     </div>
 
@@ -165,6 +166,12 @@ else
 
                                     @if (b.AccountId != null)
                                     {
+                                        @if (Project.Auth.AccountAccessRules.CanResetPassword(User, b.Role))
+                                        {
+                                            <a class="btn btn-sm btn-outline-secondary"
+                                               asp-page="/Staff/ResetPassword"
+                                               asp-route-AccountId="@b.AccountId">Reset Password</a>
+                                        }
                                         <form method="post" asp-page-handler="SetLoginStatus">
                                             <input type="hidden" name="libraryUserId" value="@b.LibraryUserId" />
                                             <input type="hidden" name="isEnabled" value="@(b.LoginIsEnabled == true ? "false" : "true")" />

@@ -10,6 +10,10 @@
         <h1 class="h2">Log in</h1>
 
         <p>Sign in using your library account.</p>
+        @if (TempData["PasswordChangedMessage"] is string message)
+        {
+            <div class="alert alert-success" role="status">@message</div>
+        }
 
         <form method="post">
             <input type="hidden" asp-for="ReturnUrl" />

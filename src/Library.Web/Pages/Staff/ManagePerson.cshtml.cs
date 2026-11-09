@@ -9,6 +9,7 @@ using MySqlConnector;
 using Project.Models;
 using Project.Data;
 using Project.Configuration;
+using Project.Auth;
 
 namespace Project.Pages.Staff
 {
@@ -78,14 +79,6 @@ namespace Project.Pages.Staff
             [Display(Name = "Website role")]
             public string WebsiteRole { get; set; } = "Staff";
 
-            [Range(0, int.MaxValue)]
-            [Display(Name = "Rental limit")]
-            public int? RentalLimit { get; set; }
-
-            [Range(0, int.MaxValue)]
-            [Display(Name = "Waitlist limit")]
-            public int? WaitlistLimit { get; set; }
-
             [DataType(DataType.Password)]
             [StringLength(128, MinimumLength = 12)]
             public string? Password { get; set; }
@@ -117,7 +110,7 @@ namespace Project.Pages.Staff
                     return "Invalid Staff ID.";
                 }
 
-                _staff = await _db.StaffMembers
+                _staff = await _db.StaffMembers.Include(s => s.Borrower)
                     .SingleOrDefaultAsync(s => s.StaffId == staffId);
 
                 if (_staff == null)
@@ -193,6 +186,9 @@ namespace Project.Pages.Staff
 
             ExpectedAccountId = _account?.AccountId;
 
+            if (!AccountAccessRules.CanManageAccountRole(User, _account?.Role, _account?.Role))
+                return Forbid();
+
             if (IsNew)
             {
                 Input.StartDate = DateTime.Today;
@@ -216,8 +212,6 @@ namespace Project.Pages.Staff
             Input.StartDate = _staff?.StartDate;
             Input.WebsiteRole = _account?.Role ?? "Staff";
             Input.FacultyId = _faculty?.FacultyId;
-            Input.RentalLimit = _faculty?.RentalLimit;
-            Input.WaitlistLimit = _faculty?.WaitlistLimit;
 
             return Page();
         }
@@ -237,7 +231,12 @@ namespace Project.Pages.Staff
                     return BadRequest(problem);
                 }
 
-                // Detect a login added or replaced after the form was opened.
+                // Detect a login added or replaced after the form was opened
+                // Enforce this, hiding an option is not authorization
+                if (!AccountAccessRules.CanManageAccountRole(User, _account?.Role,
+                    IsStaff ? Input.WebsiteRole : "Faculty"))
+                    return Forbid();
+
                 if (ExpectedAccountId != _account?.AccountId)
                 {
                     ModelState.AddModelError(
@@ -387,6 +386,10 @@ namespace Project.Pages.Staff
                     _staff.Role = Input.Position!;
                     _staff.StartDate = Input.StartDate!.Value.Date;
                     _staff.Email = Input.Email;
+
+                    // EF saves the borrower and links its generated ID in this transaction
+                    _staff.Borrower ??= new LibraryUser { IsActive = _staff.IsActive };
+                    _staff.Borrower.FullName = $"{_staff.FirstName} {_staff.LastName}";
                 }
                 else
                 {
@@ -407,7 +410,9 @@ namespace Project.Pages.Staff
                         _faculty = new FacultyMember
                         {
                             FacultyId = Input.FacultyId!,
-                            LibraryUserId = _borrower.LibraryUserId
+                            LibraryUserId = _borrower.LibraryUserId,
+                            RentalLimit = 10,
+                            WaitlistLimit = 5
                         };
 
                         _db.FacultyMembers.Add(_faculty);
@@ -416,8 +421,6 @@ namespace Project.Pages.Staff
                     _faculty!.FirstName = Input.FirstName;
                     _faculty.LastName = Input.LastName;
                     _faculty.Position = Input.Position;
-                    _faculty.RentalLimit = Input.RentalLimit;
-                    _faculty.WaitlistLimit = Input.WaitlistLimit;
 
                     _borrower!.FullName =
                         $"{Input.FirstName} {Input.LastName}";

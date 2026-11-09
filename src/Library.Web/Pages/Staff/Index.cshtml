@@ -66,6 +66,21 @@
         </div>
     </a>
 
+    <a class="kpi kpi-link" asp-page="/Staff/RoomSetupTasks">
+        <div class="kpi-label">Room setup</div>
+        <div class="kpi-value">@Model.OpenRoomSetupTasks</div>
+        <div class="kpi-note">
+            @if (Model.RoomSetupTasks.Count > 0)
+            {
+                <span>next: <strong>@Model.RoomSetupTasks[0].RoomId</strong> on @Model.RoomSetupTasks[0].StartTime.ToString("MMM d")</span>
+            }
+            else
+            {
+                <span>No rooms waiting for setup</span>
+            }
+        </div>
+    </a>
+
     <div class="kpi">
         <div class="kpi-label">Holds</div>
         <div class="kpi-value">@Model.HoldsWaiting</div>

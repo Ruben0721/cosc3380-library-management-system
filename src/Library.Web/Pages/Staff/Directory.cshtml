@@ -16,7 +16,7 @@
 
 <div class="d-flex flex-wrap gap-2 mb-4">
     <a class="btn btn-primary" asp-page="/Staff/ManagePerson" asp-route-Kind="Staff">
-        New Staff / Admin
+        @(User.IsInRole("Admin") ? "New Staff / Admin" : "New Staff")
     </a>
 
     <a class="btn btn-primary" asp-page="/Staff/ManagePerson" asp-route-Kind="Faculty">
@@ -158,6 +158,8 @@ else
                                         }
                                     </td>
                                     <td>
+                                        @if (person.AccountRole != "Admin" || User.IsInRole("Admin"))
+                                        {
                                         <a class="btn btn-sm btn-outline-primary" asp-page="/Staff/ManagePerson"
                                            asp-route-Kind="@(person.StaffId.HasValue ? "Staff" : "Faculty")"
                                            asp-route-Id="@person.RecordId">
@@ -165,6 +167,14 @@ else
                                                 ? "Edit / Add Login"
                                                 : "Edit")
                                         </a>
+                                        }
+                                        @if (person.AccountId.HasValue &&
+                                            Project.Auth.AccountAccessRules.CanResetPassword(User, person.AccountRole))
+                                        {
+                                            <a class="btn btn-sm btn-outline-secondary"
+                                               asp-page="/Staff/ResetPassword"
+                                               asp-route-AccountId="@person.AccountId">Reset Password</a>
+                                        }
                                     </td>
                                 </tr>
                             }

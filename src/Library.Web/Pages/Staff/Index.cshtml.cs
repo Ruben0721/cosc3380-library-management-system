@@ -6,6 +6,8 @@ namespace Project.Pages.Staff
 {
     public record DashReturnRow(DateTime ReturnedAt, string? Item, string Borrower, string Condition);
     public record DashPaymentRow(DateTime PaidAt, string Member, decimal Amount, string Method);
+    public record DashRoomSetupRow(string RoomId, string ReservationId, DateTime StartTime,
+        DateTime EndTime, int NumberOfPeople);
 
     // Staff dashboard
     public class IndexModel : PageModel
@@ -33,6 +35,9 @@ namespace Project.Pages.Staff
         
         public int HoldsWaiting { get; set; }
         public int HoldsReady { get; set; }
+
+        public int OpenRoomSetupTasks { get; set; }
+        public List<DashRoomSetupRow> RoomSetupTasks { get; set; } = new();
 
         
         public int ActiveMembers { get; set; }
@@ -89,6 +94,23 @@ namespace Project.Pages.Staff
             
             HoldsWaiting = await _db.Holds.CountAsync(h => h.Status == "Pending");
             HoldsReady = await _db.Holds.CountAsync(h => h.Status == "Ready");
+
+            RoomSetupTasks = await (from task in _db.RoomSetupTasks.AsNoTracking()
+                                    join reservation in _db.RoomReservations.AsNoTracking()
+                                        on task.ReservationId equals reservation.ReservationId
+                                    where task.Status == "Open"
+                                       && reservation.Status == "Confirmed"
+                                    orderby reservation.StartTime
+                                    select new DashRoomSetupRow(
+                                        task.RoomId,
+                                        task.ReservationId,
+                                        reservation.StartTime,
+                                        reservation.EndTime,
+                                        reservation.NumberOfPeople))
+                .Take(5)
+                .ToListAsync();
+            OpenRoomSetupTasks = await _db.RoomSetupTasks
+                .CountAsync(t => t.Status == "Open");
 
            
             ActiveMembers = await _db.LibraryUsers.CountAsync(u => u.IsActive);
