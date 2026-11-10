@@ -6,6 +6,7 @@ using System;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Project.Auth;
 using System.Globalization;
+using MySqlConnector;
 
 
 CultureInfo culture;
@@ -85,13 +86,26 @@ builder.Services
         options.SlidingExpiration = false;
     });
 
+builder.Services.AddScoped(_ =>
+{
+    using var connection = new MySqlConnection(GetDatabaseConnectionString());
+    connection.Open();
+    return InventorySchema.Read(connection);
+});
+
 builder.Services.AddDbContext<LibraryDbContext>(options =>
 {
-    var cs = builder.Configuration.GetConnectionString("DefaultConnection");
-    if (string.IsNullOrWhiteSpace(cs))
-        throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection using user secrets or environment variables. See README.md.");
+    var cs = GetDatabaseConnectionString();
     options.UseMySql(cs, ServerVersion.AutoDetect(cs));
 });
+
+string GetDatabaseConnectionString()
+{
+    var cs = builder.Configuration.GetConnectionString("DefaultConnection");
+    return !string.IsNullOrWhiteSpace(cs)
+        ? cs
+        : throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection using user secrets or environment variables. See README.md.");
+}
 
 builder.Services.AddAuthorization(options =>
 {

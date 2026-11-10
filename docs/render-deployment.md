@@ -54,7 +54,8 @@ Container restarts/redeployments can invalidate login cookies because data-prote
 
 ## Inventory removal update
 
-Before deploying the version that adds **Modify Inventory** removal, apply
-`database/inventory-retirement.sql` once to the same MySQL database used by
-Render. Existing rows remain active. Staff removal records a retirement date so
-past loans, fines, and other circulation records still reference the original item.
+Apply `database/inventory-retirement.sql` once to the same MySQL database used by
+Render to enable the **Remove** action in **Modify Inventory**. The website can
+run on the existing schema while this update is pending. Existing rows remain
+active, and staff removal records a retirement date so past loans, fines, and
+other circulation records still reference the original item.
