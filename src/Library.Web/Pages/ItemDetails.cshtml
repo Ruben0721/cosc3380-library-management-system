@@ -56,12 +56,10 @@
 {
     <p><a class="button button-primary" asp-page="/Checkout" asp-route-itemId="@i.Id">Check out</a></p>
 }
-<p><a class="button" href="javascript:history.back()">← Back</a></p>
-
-@if ((User.IsInRole("Staff") || User.IsInRole("Admin")))
-{
-    <a class="button button-primary"
-       style="position: fixed; right: 1.5rem; bottom: 1.5rem;"
-       asp-page="/AddInventoryItem"
-       asp-route-ItemId="@i.Id">Add inventory item</a>
-}
+<div style="display: flex; justify-content: space-between;">
+    <a class="button" href="javascript:history.back()">← Back</a>
+    @if ((User.IsInRole("Staff") || User.IsInRole("Admin")))
+    {
+    <a class="button button-primary" asp-page="/AddInventoryItem" asp-route-ItemId="@i.Id">Add inventory item</a>
+    }
+</div>
