@@ -16,8 +16,7 @@
 
 <section class="overview">
     <table class="hours">
-        <tr><th>Status</th><td>@i.Status</td></tr>
-        <tr><th>Barcode</th><td>@i.barcode</td></tr>
+        <tr><th>Status</th><td>@(i.RetiredAt.HasValue ? "Removed from inventory" : i.Status)</td></tr>
 
         @if (i.Book != null)
         {
@@ -52,7 +51,7 @@
         }
     </table>
 </section>
-@if (i.Status == "Available" && (User.IsInRole("Staff") || User.IsInRole("Admin")))
+@if (i.RetiredAt == null && i.Status == "Available" && (User.IsInRole("Staff") || User.IsInRole("Admin")))
 {
     <p><a class="button button-primary" asp-page="/Checkout" asp-route-itemId="@i.Id">Check out</a></p>
 }

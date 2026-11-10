@@ -14,6 +14,7 @@ namespace Project.Models
         public string? Status { get; set; }
         [Required, StringLength(50)]
         public string? barcode { get; set; }
+        public DateTime? RetiredAt { get; set; }
 
         public Books? Book { get; set; }
         public HeadPhones? HeadPhone { get; set; }

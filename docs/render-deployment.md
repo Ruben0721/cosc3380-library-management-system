@@ -51,3 +51,10 @@ Container restarts/redeployments can invalidate login cookies because data-prote
 - https://render.com/docs/docker
 - https://render.com/docs/web-services
 - https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-8.0
+
+## Inventory removal update
+
+Before deploying the version that adds **Modify Inventory** removal, apply
+`database/inventory-retirement.sql` once to the same MySQL database used by
+Render. Existing rows remain active. Staff removal records a retirement date so
+past loans, fines, and other circulation records still reference the original item.
