@@ -22,6 +22,7 @@
             <nav aria-label="Main navigation">
                 <a asp-page="/Index" aria-current="page">Home</a>
                 <a asp-page="/Search">Library Catalog</a>
+                <a asp-page="/Rooms">Rooms</a>
                 <a href="#about">About</a>
 
                 @if (User.Identity?.IsAuthenticated == true)
@@ -103,8 +104,8 @@
                         through your next assignment in a comfortable
                         learning environment.
                     </p>
-                    <a class="button" asp-page="/RoomReservations">
-                        Reserve a room
+                    <a class="button" asp-page="/Rooms">
+                        View room availability
                     </a>
                 </article>
 
