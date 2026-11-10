@@ -1,5 +1,8 @@
 @page
 @model Project.Pages.Staff.FinesModel
+@{
+    ViewData["Title"] = "Fines & Payments";
+}
 
 <section class="hero">
     <p class="eyebrow">Circulation</p>
@@ -24,9 +27,14 @@
 
 <section class="overview">
     <form method="get" class="search-form">
-        <input type="text" name="Search" value="@Model.Search" placeholder="Member or item name" />
+        <select asp-for="SearchByItem" aria-label="Search by">
+            <option value="false">Member name</option>
+            <option value="true">Item name</option>
+        </select>
+        <label for="fines-search" class="visually-hidden">Name to search for</label>
+        <input id="fines-search" type="search" name="Search" value="@Model.Search" placeholder="Enter a name" />
         <button type="submit" class="button button-primary">Search</button>
-        @if (!string.IsNullOrEmpty(Model.Search))
+        @if (Model.IsMemberLookup || Model.IsItemLookup)
         {
             <a asp-page="/Staff/Fines">Clear</a>
         }
@@ -34,92 +42,132 @@
     </form>
 </section>
 
-<section>
-    <h2>Members with a balance (@Model.Balances.Count) · @Model.TotalOutstanding.ToString("C") outstanding</h2>
-    @if (Model.Balances.Count == 0)
-    {
-        <p>No unpaid fines@(string.IsNullOrEmpty(Model.Search) ? "" : " match your search").</p>
-    }
-    else
-    {
-        <table class="results">
-            <tr><th>Member</th><th class="num">Unpaid fines</th><th class="num">Balance</th><th>Oldest fine</th><th></th></tr>
-            @foreach (var b in Model.Balances)
+@if (Model.IsMemberLookup && Model.SelectedMember == null)
+{
+    <section>
+        <h2>Member lookup</h2>
+        @if (Model.MatchingMembers.Count == 0)
+        {
+            <p>No members match your search.</p>
+        }
+        else
+        {
+            <p>Select a member to see their fines and payments.</p>
+            <ul>
+                @foreach (var member in Model.MatchingMembers)
+                {
+                    <li><a asp-page="/Staff/Fines" asp-route-MemberId="@member.LibraryUserId"
+                           asp-route-Search="@Model.Search">@member.FullName (member #@member.LibraryUserId)</a></li>
+                }
+            </ul>
+        }
+    </section>
+}
+else
+{
+    <section>
+        @if (Model.IsMemberLookup)
+        {
+            <h2>@Model.SelectedMember</h2>
+            <p>Member #@Model.MemberId · <strong>@Model.TotalOutstanding.ToString("C") outstanding</strong></p>
+        }
+        else
+        {
+            <h2>Members with a balance (@Model.Balances.Count) · @Model.TotalOutstanding.ToString("C") outstanding</h2>
+            @if (Model.Balances.Count > 0)
             {
-                <tr>
-                    <td>@b.Member</td>
-                    <td class="num">@b.Fines</td>
-                    <td class="num">@b.Balance.ToString("C")</td>
-                    <td>@b.Oldest.ToString("MMM d, yyyy")</td>
-                    <td><a asp-page="/Staff/Fines" asp-route-Search="@b.Member">Show fines</a></td>
-                </tr>
+                <table class="results">
+                    <tr><th>Member</th><th class="num">Unpaid fines</th><th class="num">Balance</th><th>Oldest fine</th><th></th></tr>
+                    @foreach (var b in Model.Balances)
+                    {
+                        <tr>
+                            <td>@b.Member</td>
+                            <td class="num">@b.Fines</td>
+                            <td class="num">@b.Balance.ToString("C")</td>
+                            <td>@b.Oldest.ToString("MMM d, yyyy")</td>
+                            <td><a asp-page="/Staff/Fines" asp-route-MemberId="@b.LibraryUserId">Show fines</a></td>
+                        </tr>
+                    }
+                </table>
             }
-        </table>
+        }
 
-        <h2 style="margin-top: 32px;">Unpaid fines (@Model.Unpaid.Count)</h2>
-        <table class="results">
-            <tr>
-                <th class="num">#</th><th>Member</th><th>Item</th><th>Type</th><th class="num">Days late</th>
-                <th>Assessed</th><th class="num">Amount</th><th>Take payment</th>
-            </tr>
-            @foreach (var f in Model.Unpaid)
-            {
+        <h2 class="mt-4">Unpaid fines (@Model.Unpaid.Count)</h2>
+        @if (Model.Unpaid.Count == 0)
+        {
+            <p>No unpaid fines.</p>
+        }
+        else
+        {
+            <table class="results">
                 <tr>
-                    <td class="num">@f.FineId</td>
-                    <td>@f.Member</td>
-                    <td>@(f.ItemName ?? "—")</td>
-                    <td>@f.FineType</td>
-                    <td class="num">@(f.DaysLate is > 0 ? f.DaysLate.ToString() : "—")</td>
-                    <td>@f.DateAssessed.ToString("MMM d, yyyy")</td>
-                    <td class="num">@f.Amount.ToString("C")</td>
-                    <td>
-                        <form method="post" asp-page-handler="Pay" class="d-flex gap-2 align-items-center">
-                            <input type="hidden" name="fineId" value="@f.FineId" />
-                            <input type="hidden" name="Search" value="@Model.Search" />
-                            <select name="method" class="form-select form-select-sm" style="width: auto;">
-                                @foreach (var m in Project.Pages.Staff.FinesModel.Methods)
-                                {
-                                    <option value="@m">@(char.ToUpper(m[0]) + m[1..])</option>
-                                }
-                            </select>
-                            <button type="button" class="btn btn-sm btn-primary js-pay"
-                                    data-fine="@f.FineId"
-                                    data-member="@f.Member"
-                                    data-item="@(f.ItemName ?? "—")"
-                                    data-type="@f.FineType"
-                                    data-amount="@f.Amount.ToString("C")">
-                                Pay
-                            </button>
-                        </form>
-                    </td>
+                    <th class="num">#</th><th>Member</th><th>Item</th><th>Type</th><th class="num">Days late</th>
+                    <th>Assessed</th><th class="num">Amount</th><th>Take payment</th>
                 </tr>
-            }
-        </table>
-    }
+                @foreach (var f in Model.Unpaid)
+                {
+                    <tr>
+                        <td class="num">@f.FineId</td>
+                        <td>@f.Member</td>
+                        <td>@(f.ItemName ?? "—")</td>
+                        <td>@f.FineType</td>
+                        <td class="num">@(f.DaysLate is > 0 ? f.DaysLate.ToString() : "—")</td>
+                        <td>@f.DateAssessed.ToString("MMM d, yyyy")</td>
+                        <td class="num">@f.Amount.ToString("C")</td>
+                        <td>
+                            <form method="post" asp-page-handler="Pay" class="d-flex gap-2 align-items-center">
+                                <input type="hidden" name="fineId" value="@f.FineId" />
+                                <input type="hidden" name="Search" value="@Model.Search" />
+                                <input type="hidden" name="MemberId" value="@Model.MemberId" />
+                                <input type="hidden" asp-for="SearchByItem" id="search-by-item-@f.FineId" />
+                                <select name="method" class="form-select form-select-sm" style="width: auto;">
+                                    @foreach (var m in Project.Pages.Staff.FinesModel.Methods)
+                                    {
+                                        <option value="@m">@(char.ToUpper(m[0]) + m[1..])</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-sm btn-primary js-pay"
+                                        data-fine="@f.FineId"
+                                        data-member="@f.Member"
+                                        data-item="@(f.ItemName ?? "—")"
+                                        data-type="@f.FineType"
+                                        data-amount="@f.Amount.ToString("C")">
+                                    Pay
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </table>
+        }
 
-    <h2 style="margin-top: 32px;">Recent payments</h2>
-    @if (Model.RecentPayments.Count == 0)
-    {
-        <p>No payments recorded yet.</p>
-    }
-    else
-    {
-        <table class="results">
-            <tr><th>Payment</th><th>Member</th><th>For</th><th>Method</th><th>Date</th><th class="num">Amount</th></tr>
-            @foreach (var p in Model.RecentPayments)
+        @if (!Model.IsItemLookup)
+        {
+            <h2 class="mt-4">@(Model.IsMemberLookup ? "Member payment history" : "Recent payments")</h2>
+            @if (Model.Payments.Count == 0)
             {
-                <tr>
-                    <td>@p.PaymentId</td>
-                    <td>@p.Member</td>
-                    <td>@p.FineType</td>
-                    <td>@p.Method</td>
-                    <td>@p.PaymentDate.ToString("MMM d, yyyy")</td>
-                    <td class="num">@p.Amount.ToString("C")</td>
-                </tr>
+                <p>No payments recorded yet.</p>
             }
-        </table>
-    }
-</section>
+            else
+            {
+                <table class="results">
+                    <tr><th>Payment</th><th>Member</th><th>For</th><th>Method</th><th>Date</th><th class="num">Amount</th></tr>
+                    @foreach (var p in Model.Payments)
+                    {
+                        <tr>
+                            <td>@p.PaymentId</td>
+                            <td>@p.Member</td>
+                            <td>@p.FineType</td>
+                            <td>@p.Method</td>
+                            <td>@p.PaymentDate.ToString("MMM d, yyyy")</td>
+                            <td class="num">@p.Amount.ToString("C")</td>
+                        </tr>
+                    }
+                </table>
+            }
+        }
+    </section>
+}
 
 <!-- Payment confirmation window -->
 <div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payModalTitle" aria-hidden="true">

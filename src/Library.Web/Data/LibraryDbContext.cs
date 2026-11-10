@@ -119,6 +119,8 @@ namespace Project.Data
         {
             return await Inventory.AsNoTracking().ToListAsync();
         }
+        public IQueryable<Inventory> ActiveInventory => Inventory.Where(i => i.RetiredAt == null);
+
         public IQueryable<Inventory> InventoryWithDetails()
                 {
                     return Inventory

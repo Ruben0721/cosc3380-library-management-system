@@ -730,3 +730,14 @@ a.kpi-link:hover, a.kpi-link:focus-visible {
         padding: 24px;
     }
 }
+
+.account-section {
+    padding: clamp(16px, 3vw, 24px);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+}
+
+.account-section p:last-child {
+    margin-bottom: 0;
+}

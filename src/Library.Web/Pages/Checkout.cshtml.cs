@@ -43,7 +43,18 @@ namespace Project.Pages
             using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
-                
+                // Serialize checkout and inventory removal for the same copy.
+                var rows = await _db.Inventory
+                    .FromSqlInterpolated($"SELECT * FROM Inventory WHERE Id = {Item.Id} FOR UPDATE")
+                    .ToListAsync();
+                var row = rows.SingleOrDefault();
+                if (row == null || row.RetiredAt.HasValue || row.Status != "Available")
+                {
+                    await transaction.RollbackAsync();
+                    Error = "This item is no longer available for checkout.";
+                    return Page();
+                }
+
                 _db.Rentals.Add(new Rental
                 {
                     ItemId = Item.Id,
@@ -55,8 +66,7 @@ namespace Project.Pages
                 await _db.SaveChangesAsync();
 
                
-                var row = await _db.Inventory.FindAsync(Item.Id);
-                row!.Status = "Checked Out";
+                row.Status = "Checked Out";
                 await _db.SaveChangesAsync();
 
                 await transaction.CommitAsync();
@@ -74,7 +84,7 @@ namespace Project.Pages
 
         private async Task LoadAsync()
         {
-            Item = await _db.Inventory.AsNoTracking().FirstOrDefaultAsync(i => i.Id == ItemId);
+            Item = await _db.ActiveInventory.AsNoTracking().FirstOrDefaultAsync(i => i.Id == ItemId);
             if (Item == null) return;
 
             if (Item.Status != "Available")

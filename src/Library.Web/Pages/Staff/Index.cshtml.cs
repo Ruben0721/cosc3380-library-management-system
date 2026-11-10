@@ -89,7 +89,7 @@ namespace Project.Pages.Staff
                 .ToListAsync();
             OpenRepairs = openRequests.Count;
             OldestRepairDays = openRequests.Count == 0 ? 0 : openRequests.Max(c => (now - c).Days);
-            OutOfService = await _db.Inventory.CountAsync(i => i.Status == "Under Repair" || i.Status == "Lost");
+            OutOfService = await _db.ActiveInventory.CountAsync(i => i.Status == "Under Repair" || i.Status == "Lost");
 
             
             HoldsWaiting = await _db.Holds.CountAsync(h => h.Status == "Pending");

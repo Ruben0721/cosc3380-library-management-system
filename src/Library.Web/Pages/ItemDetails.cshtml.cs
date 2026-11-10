@@ -16,7 +16,11 @@ namespace Project.Pages
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
-            Item = await _db.Inventory
+            var inventory = User.IsInRole("Staff") || User.IsInRole("Admin")
+                ? _db.Inventory.AsQueryable()
+                : _db.ActiveInventory;
+
+            Item = await inventory
                 .AsNoTracking()
                 .Include(i => i.Book)
                 .Include(i => i.HeadPhone)
