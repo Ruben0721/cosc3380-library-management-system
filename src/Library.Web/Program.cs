@@ -52,15 +52,15 @@ builder.Services.AddRazorPages(options =>
 
     options.Conventions.AuthorizePage(
         "/CollectionPerformance",
-        "LibraryStaff");
+        "LibraryAdmin");
 
     options.Conventions.AuthorizePage(
         "/OverdueFines",
-        "LibraryStaff");
+        "LibraryAdmin");
 
     options.Conventions.AuthorizePage(
         "/EquipmentMaintenance",
-        "LibraryStaff");
+        "LibraryAdmin");
 });
 
 builder.Services
@@ -95,6 +95,12 @@ builder.Services.AddDbContext<LibraryDbContext>(options =>
 
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("LibraryAdmin", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("Admin");
+    });
+
     options.AddPolicy("LibraryStaff", policy =>
     {
         policy.RequireAuthenticatedUser();

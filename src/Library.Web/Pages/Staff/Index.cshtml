@@ -132,15 +132,18 @@
         </div>
     </section>
 
-    <section class="dash-card">
-        <h3>Reports</h3>
-        <p>Analysis to support decisions.</p>
-        <div class="dash-links" role="navigation" aria-label="Reports">
-            <a asp-page="/CollectionPerformance">Circulation &amp; collection performance</a>
-            <a asp-page="/OverdueFines">Overdue returns &amp; fines</a>
-            <a asp-page="/EquipmentMaintenance">Equipment maintenance</a>
-        </div>
-    </section>
+    @if (User.IsInRole("Admin"))
+    {
+        <section class="dash-card">
+            <h3>Reports</h3>
+            <p>Analysis to support decisions.</p>
+            <div class="dash-links" role="navigation" aria-label="Reports">
+                <a asp-page="/CollectionPerformance">Circulation &amp; collection performance</a>
+                <a asp-page="/OverdueFines">Overdue returns &amp; fines</a>
+                <a asp-page="/EquipmentMaintenance">Equipment maintenance</a>
+            </div>
+        </section>
+    }
 </div>
 
 <!-- Recent activity -->
