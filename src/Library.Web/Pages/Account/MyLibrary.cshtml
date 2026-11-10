@@ -25,8 +25,9 @@
     }
     @if (Model.ActiveTab == "personal")
     {
-        <section class="account-panel">
+        <section class="library-account-panel">
             <h2 class="h4">Personal Info</h2>
+            <p>Review the details linked to your library account.</p>
             <dl class="account-details">
                 <div><dt>Name</dt><dd>@(Model.FullName ?? "Borrower record not linked")</dd></div>
                 <div><dt>Email</dt><dd>@Model.Email</dd></div>
@@ -34,7 +35,7 @@
             </dl>
             <div class="account-security">
                 <h3 class="h5">Password</h3>
-                <p>Update the password you use to sign in.</p>
+                <p>Change your password using your current password and a new password of at least 12 characters. After a successful change, you will need to sign in again.</p>
                 <a class="btn btn-outline-primary" asp-page="/Account/ChangePassword">Change Password</a>
             </div>
         </section>
@@ -45,29 +46,34 @@
         {
             <section aria-labelledby="overview-heading">
                 <h2 id="overview-heading" class="h4 mb-3">Overview</h2>
+                <p>Welcome, @Model.FullName. Here is a summary of your current library activity. Select a section to see the details.</p>
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <section class="account-panel account-summary">
+                        <section class="library-account-panel account-summary">
                             <h3 class="h5">Checkouts</h3>
                             <p class="account-value">@Model.Loans.Count</p>
                             <p>Items currently checked out</p>
                             @if (Model.Loans.Any(l => l.Due < DateTime.Today))
-{ <p class="text-danger fw-bold">@Model.Loans.Count(l => l.Due < DateTime.Today) overdue</p> }
+                            {
+                                <p class="text-danger fw-bold">@Model.Loans.Count(l => l.Due < DateTime.Today) overdue</p>
+                            }
                             <a asp-page="/Account/MyLibrary" asp-route-tab="checkouts">View checkouts &rarr;</a>
                         </section>
                     </div>
                     <div class="col-md-4">
-                        <section class="account-panel account-summary">
+                        <section class="library-account-panel account-summary">
                             <h3 class="h5">Requests</h3>
                             <p class="account-value">@Model.Holds.Count</p>
                             <p>Active holds</p>
                             @if (Model.Holds.Any(h => h.Status == "Ready"))
-{ <p class="fw-bold">@Model.Holds.Count(h => h.Status == "Ready") ready for pickup</p> }
+                            {
+                                <p class="fw-bold">@Model.Holds.Count(h => h.Status == "Ready") ready for pickup</p>
+                            }
                             <a asp-page="/Account/MyLibrary" asp-route-tab="requests">View requests &rarr;</a>
                         </section>
                     </div>
                     <div class="col-md-4">
-                        <section class="account-panel account-summary">
+                        <section class="library-account-panel account-summary">
                             <h3 class="h5">Fines</h3>
                             <p class="account-value">@Model.TotalDue.ToString("C", dollars)</p>
                             <p>Unpaid balance</p>
@@ -80,12 +86,13 @@
         }
         else if (Model.ActiveTab == "checkouts")
         {
-            <div class="account-panel">
+            <div class="library-account-panel">
                 <section class="mb-4">
                     <h2 class="h4">Items checked out</h2>
+                    <p>These are the items currently borrowed on your account, listed by due date. Check the dates below and return items on time to avoid overdue charges.</p>
                     @if (Model.Loans.Count == 0)
                     {
-                        <p>You have no items checked out.</p>
+                        <p>You have no items checked out. <a asp-page="/Search">Browse the catalog</a> to find your next item.</p>
                     }
                     else
                     {
@@ -110,13 +117,14 @@
         }
         else if (Model.ActiveTab == "requests")
         {
-            <div class="account-panel">
+            <div class="library-account-panel">
 
                 <section class="mb-4">
                     <h2 class="h4">Requested holds</h2>
+                    <p>Track your active item requests here. Pending holds are still waiting; ready holds are available for pickup. When a pickup deadline is shown, collect the item before that date.</p>
                     @if (Model.Holds.Count == 0)
                     {
-                        <p>You have no active holds.</p>
+                        <p>You have no active holds. Any pending or ready-for-pickup requests will appear here.</p>
                     }
                     else
                     {
@@ -136,6 +144,7 @@
 
                 <section>
                     <h2 class="h4">Room reservations</h2>
+                    <p>Review the times and status of room reservations linked to your account.</p>
                     @if (Model.RoomReservations.Count == 0)
                     {
                         <p>You have no room reservations.</p>
@@ -174,14 +183,15 @@
         }
         else if (Model.ActiveTab == "fines")
         {
-            <div class="account-panel">
+            <div class="library-account-panel">
 
                 <section>
                     <h2 class="h4">Fines due</h2>
+                    <p>This section lists unpaid charges linked to your account, including the item, reason, and amount. Contact library staff if you have a question about a charge or need help with payment.</p>
                     <p>Total owed: <strong>@Model.TotalDue.ToString("C", dollars)</strong></p>
                     @if (Model.Fines.Count == 0)
                     {
-                        <p>You have no unpaid fines.</p>
+                        <p>You have no unpaid fines. There is no outstanding balance on your account.</p>
                     }
                     else
                     {

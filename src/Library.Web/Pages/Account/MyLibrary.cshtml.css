@@ -1,3 +1,9 @@
+/* Page heading */
+.library-account > h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin-bottom: 1rem;
+}
+
 
 /* Tab navigation */
 .account-tabs {
@@ -28,8 +34,9 @@
 }
 
 /* Content panels and overview cards */
-.account-panel {
+.library-account-panel {
     background: var(--surface);
+    color: var(--ink);
     border: 1px solid var(--line);
     border-radius: .5rem;
     padding: 1.5rem;
@@ -83,12 +90,10 @@
 
 /* Small screens */
 @media (max-width: 575px) {
-/* Content panels with overview cards */
-    .account-panel {
+    .library-account-panel {
         padding: 1rem;
     }
 
-/* Tab navigation */
     .account-tabs {
         gap: .25rem .75rem;
     }
