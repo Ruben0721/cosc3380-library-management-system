@@ -21,6 +21,7 @@ namespace Project.Pages
 
         public List<(string Value, string Label)> Types => LibraryOptions.Types;
         public List<string> Statuses => LibraryOptions.Statuses;
+        public bool CanRemoveItems => _db.InventoryRetirementEnabled;
 
         public List<Inventory> Inventory { get; private set; } = new();
         public int TotalItems { get; private set; }
@@ -49,6 +50,12 @@ namespace Project.Pages
 
         public async Task<IActionResult> OnPostRemoveAsync(int itemId)
         {
+            if (!CanRemoveItems)
+            {
+                Error = "Inventory removal is unavailable until the database update is applied.";
+                return RedirectToPage(new { SelectedType, SelectedStatus, Sort });
+            }
+
             var removed = await _db.ActiveInventory
                 .Where(i => i.Id == itemId
                     && i.Status != "Checked Out" && i.Status != "On Hold" && i.Status != "Under Repair"
