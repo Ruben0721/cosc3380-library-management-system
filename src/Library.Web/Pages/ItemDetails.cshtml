@@ -52,15 +52,18 @@
         }
     </table>
 </section>
-<div style="display: flex; justify-content: space-between;">
+<div style="display: flex; justify-content: space-between; align-items: center;">
     @if (i.Status == "Available" && (User.IsInRole("Staff") || User.IsInRole("Admin")))
     {
-        <p><a class="button button-primary" asp-page="/Checkout" asp-route-itemId="@i.Id">Check out</a></p>
+        <a class="button button-primary" asp-page="/Checkout" asp-route-itemId="@i.Id">Check out</a>
     }
-    @if ((User.IsInRole("Staff") || User.IsInRole("Admin")))
+    @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
     {
         <a class="button button-primary" asp-page="/AddInventoryItem" asp-route-ItemId="@i.Id">Edit Item</a>
     }
 </div>
-<a class="button" href="javascript:history.back()">← Back</a>
+
+<div style="margin-top: 1rem;">
+    <a class="button" href="javascript:history.back()">← Back</a>
+</div>
 
