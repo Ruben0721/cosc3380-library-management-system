@@ -1,0 +1,96 @@
+
+/* Tab navigation */
+.account-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+    margin: 1.5rem 0 1.75rem;
+    padding: 0;
+}
+
+.account-tab {
+    padding: .8rem .4rem;
+    border-bottom: 3px solid transparent;
+    text-decoration: none;
+    color: var(--muted);
+}
+
+.account-tab:hover {
+    background: var(--brand-tint);
+    color: var(--brand);
+}
+
+.account-tab.active {
+    border-bottom-color: var(--brand);
+    color: var(--brand-dark);
+    font-weight: 700;
+}
+
+/* Content panels and overview cards */
+.account-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: .5rem;
+    padding: 1.5rem;
+}
+
+.account-summary {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.account-summary a {
+    margin-top: auto;
+    font-weight: 600;
+}
+
+.account-value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--brand);
+    margin: .75rem 0 .25rem;
+}
+
+/* Personal information and password settings */
+.account-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.account-details dt {
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.account-details dd {
+    overflow-wrap: anywhere;
+    margin-top: .25rem;
+}
+
+.account-security {
+    border-top: 1px solid var(--line);
+    padding-top: 1.5rem;
+}
+
+/* Activity tables */
+.table {
+    margin-bottom: 0;
+}
+
+/* Small screens */
+@media (max-width: 575px) {
+/* Content panels with overview cards */
+    .account-panel {
+        padding: 1rem;
+    }
+
+/* Tab navigation */
+    .account-tabs {
+        gap: .25rem .75rem;
+    }
+
+}
