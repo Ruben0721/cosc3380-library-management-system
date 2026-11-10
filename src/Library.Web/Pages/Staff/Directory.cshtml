@@ -15,9 +15,12 @@
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-4">
-    <a class="btn btn-primary" asp-page="/Staff/ManagePerson" asp-route-Kind="Staff">
-        @(User.IsInRole("Admin") ? "New Staff / Admin" : "New Staff")
-    </a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a class="btn btn-primary" asp-page="/Staff/ManagePerson" asp-route-Kind="Staff">
+            New Staff / Admin
+        </a>
+    }
 
     <a class="btn btn-primary" asp-page="/Staff/ManagePerson" asp-route-Kind="Faculty">
         New Faculty
@@ -158,7 +161,9 @@ else
                                         }
                                     </td>
                                     <td>
-                                        @if (person.AccountRole != "Admin" || User.IsInRole("Admin"))
+                                        @if ((!person.StaffId.HasValue &&
+                                             Project.Auth.AccountAccessRules.CanManageAccountRole(User, person.AccountRole, "Faculty")) ||
+                                             User.IsInRole("Admin"))
                                         {
                                         <a class="btn btn-sm btn-outline-primary" asp-page="/Staff/ManagePerson"
                                            asp-route-Kind="@(person.StaffId.HasValue ? "Staff" : "Faculty")"
