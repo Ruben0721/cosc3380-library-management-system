@@ -42,7 +42,7 @@
 
 
 <table class="results">
-    <tr><th>Name</th><th>Type</th><th>Status</th><th>Barcode</th></tr>
+    <tr><th>Name</th><th>Type</th><th>Status</th><th>Barcode</th><th>Edit</th></tr>
     @foreach (var item in Model.Inventory)
     {
     <tr class="clickable-row" onclick="location.href='/ItemDetails?id=@item.Id'">
@@ -50,6 +50,7 @@
     <td>@item.Type</td>
     <td>@item.Status</td>
     <td>@item.barcode</td>
+            <td><button class="button-primary" href="/AddInventoryItem?ItemId=@(item.Id)">Edit</button></td>
 </tr>
     }
 </table>
