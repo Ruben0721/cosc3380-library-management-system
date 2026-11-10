@@ -30,7 +30,7 @@ namespace Project.Pages
             if (!ItemId.HasValue)
                 return Page();
 
-            var item = await _db.ActiveInventory
+            var item = await _db.Set<Inventory>()
                 .Include(i => i.Book)
                 .Include(i => i.Media)
                 .Include(i => i.Laptop)
@@ -63,7 +63,7 @@ namespace Project.Pages
             if (!ItemId.HasValue)
                 return null;
 
-            return await _db.ActiveInventory
+            return await _db.Inventory
                 .Include(i => i.Book)
                 .Include(i => i.Media)
                 .Include(i => i.Laptop)

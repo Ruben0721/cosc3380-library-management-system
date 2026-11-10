@@ -24,7 +24,7 @@ namespace Project.Pages.Staff
 
         public async Task OnGetAsync()
         {
-            var query = _db.ActiveInventory.AsNoTracking();
+            var query = _db.Inventory.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(Search))
             {

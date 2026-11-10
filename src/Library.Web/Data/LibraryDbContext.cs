@@ -1,24 +1,11 @@
 using Project.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;
 namespace Project.Data
 {
     public class LibraryDbContext : DbContext
     {
-        public LibraryDbContext(DbContextOptions<LibraryDbContext> options, InventorySchema? inventorySchema = null)
-            : base(options)
-        {
-            InventoryRetirementEnabled = inventorySchema?.HasRetiredAt ?? true;
-        }
-
-        public bool InventoryRetirementEnabled { get; }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.ReplaceService<IModelCacheKeyFactory, InventorySchemaModelCacheKeyFactory>();
-        }
-
+        public LibraryDbContext(DbContextOptions<LibraryDbContext> options) : base(options) { }
         public DbSet<Inventory> Inventory => Set<Inventory>();
         public DbSet<LibraryUser> LibraryUsers => Set<LibraryUser>();
         public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
@@ -42,9 +29,6 @@ namespace Project.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            if (!InventoryRetirementEnabled)
-                modelBuilder.Entity<Inventory>().Ignore(i => i.RetiredAt);
-
             modelBuilder.Entity<Rental>().ToTable("Rentals");
             modelBuilder.Entity<Books>().HasKey(x => x.ItemId);
             modelBuilder.Entity<Books>().Property(x => x.ItemId).ValueGeneratedNever();
@@ -135,10 +119,6 @@ namespace Project.Data
         {
             return await Inventory.AsNoTracking().ToListAsync();
         }
-        public IQueryable<Inventory> ActiveInventory => InventoryRetirementEnabled
-            ? Inventory.Where(i => i.RetiredAt == null)
-            : Inventory;
-
         public IQueryable<Inventory> InventoryWithDetails()
                 {
                     return Inventory

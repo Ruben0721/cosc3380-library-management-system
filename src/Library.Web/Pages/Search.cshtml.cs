@@ -34,7 +34,7 @@ namespace Project.Pages
 
         SearchTerm = SearchTerm?.Trim();
 
-        var query = _db.ActiveInventory
+        var query = _db.Inventory
             .AsNoTracking()
             .Include(i => i.Book)
             .Include(i => i.HeadPhone)
@@ -53,6 +53,7 @@ namespace Project.Pages
             query = query.Where(i =>
                 (i.Name != null && i.Name.Contains(s))
                 || i.Type.Contains(s)
+                || (i.barcode != null && i.barcode.Contains(s))
 
                 || (i.Book != null && (i.Book.Title.Contains(s)
                 || i.Book.Author.Contains(s)

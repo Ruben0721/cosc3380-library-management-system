@@ -1,98 +1,56 @@
-@page
+@page 
 @model InventoryModel
 @{
-    ViewData["Title"] = "Modify Inventory";
+    ViewData["Title"] = "Inventory";
 }
-<section class="report-header">
-    <div>
-        <p class="eyebrow">Collection</p>
-        <h1>Modify Inventory</h1>
-        <p class="report-lede">Showing @Model.Inventory.Count of @Model.TotalItems active items</p>
-    </div>
-    <a class="btn btn-library" asp-page="/AddInventoryItem">Add an item</a>
+<section class="hero">
+    <p class="eyebrow">Collection</p>
+    <h1>Inventory</h1>
+    <p>Showing @Model.Inventory.Count of @Model.TotalItems items</p>
 </section>
-
-@if (Model.Message != null)
-{
-    <p class="alert alert-success" role="status">@Model.Message</p>
-}
-@if (Model.Error != null)
-{
-    <p class="alert alert-danger" role="alert">@Model.Error</p>
-}
-
-@if (!Model.CanRemoveItems)
-{
-    <p class="alert alert-info">Inventory removal is unavailable until the database update is applied.</p>
-}
 
 <section class="overview">
     <form method="get" class="search-form">
-        <select asp-for="SelectedType" aria-label="Item type">
+
+
+        <select name="SelectedType">
             <option value="">All types</option>
             @foreach (var t in Model.Types)
             {
-                <option value="@t.Value">@t.Label</option>
+                <option value="@t.Value" selected="@(t.Value == Model.SelectedType)">@t.Label</option>
             }
         </select>
 
-        <select asp-for="SelectedStatus" aria-label="Item status">
+        <select name="SelectedStatus">
             <option value="">All statuses</option>
             @foreach (var s in Model.Statuses)
             {
-                <option value="@s">@s</option>
+                <option value="@s" selected="@(s == Model.SelectedStatus)">@s</option>
             }
         </select>
 
-        <select asp-for="Sort" aria-label="Sort items">
+        <select name="Sort">
             <option value="">Sort by name</option>
-            <option value="type">Sort by type</option>
-            <option value="status">Sort by status</option>
-            <option value="newest">Newest first</option>
+            <option value="type" selected="@(Model.Sort == "type")">Sort by type</option>
+            <option value="status" selected="@(Model.Sort == "status")">Sort by status</option>
+            <option value="newest" selected="@(Model.Sort == "newest")">Newest first</option>
         </select>
 
         <button type="submit" class="button button-primary">Apply</button>
     </form>
 </section>
 
-@if (Model.Inventory.Count == 0)
-{
-    <p>No active items match these filters.</p>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="results">
-            <thead>
-                <tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Barcode</th><th scope="col">Actions</th></tr>
-            </thead>
-            <tbody>
-            @foreach (var item in Model.Inventory)
-            {
-                <tr>
-                    <td><a asp-page="/ItemDetails" asp-route-id="@item.Id">@item.Name</a></td>
-                    <td>@item.Type</td>
-                    <td>@item.Status</td>
-                    <td>@item.barcode</td>
-                    <td>
-                        <div class="d-flex flex-wrap gap-2">
-                            <a class="btn btn-sm btn-library-outline" asp-page="/AddInventoryItem" asp-route-itemId="@item.Id">Edit</a>
-                            @if (Model.CanRemoveItems && item.Status != "Checked Out" && item.Status != "On Hold" && item.Status != "Under Repair")
-                            {
-                                <form method="post" asp-page-handler="Remove"
-                                      asp-route-SelectedType="@Model.SelectedType"
-                                      asp-route-SelectedStatus="@Model.SelectedStatus" asp-route-Sort="@Model.Sort"
-                                      data-item-name="@item.Name"
-                                      onsubmit="return confirm('Remove ' + this.dataset.itemName + ' from the library collection? Its circulation history will be kept.');">
-                                    <input type="hidden" name="itemId" value="@item.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
-                                </form>
-                            }
-                        </div>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
-}
+
+<table class="results">
+    <tr><th>Name</th><th>Type</th><th>Status</th><th>Barcode</th></tr>
+    @foreach (var item in Model.Inventory)
+    {
+    <tr class="clickable-row" onclick="location.href='/ItemDetails?id=@item.Id'">
+    <td><a asp-page="/ItemDetails" asp-route-id="@item.Id">@item.Name</a></td>
+    <td>@item.Type</td>
+    <td>@item.Status</td>
+    <td>@item.barcode</td>
+</tr>
+    }
+</table>
+

@@ -3,15 +3,9 @@
 @{
     ViewData["Title"] = "Library Catalog";
 }
-<section class="report-header">
-    <div>
-        <p class="eyebrow">Books &amp; resources</p>
-        <h1>Library Catalog</h1>
-        <p class="report-lede">Find books, media, equipment, and maps in the collection.</p>
-    </div>
-</section>
-
-<form method="get" class="overview mb-4">
+<h1>Library Catalog</h1>
+<p>Browse the collection or search by name, author, ISBN, or barcode.</p>
+<form method="get" class="mb-4">
     <label for="SelectedType">Item type</label>
     <select id="SelectedType" asp-for="SelectedType" class="form-select mb-2">
         <option value="">All items</option>
@@ -22,22 +16,22 @@
     </select>
     <label for="SearchTerm">Search the catalog</label>
     <input id="SearchTerm" asp-for="SearchTerm" class="form-control mb-2"
-           placeholder="Name, author, ISBN, or other item details" />
+           placeholder="Name, type, author, ISBN or barcode" />
     <button type="submit" class="btn btn-primary">Search</button>
     <a asp-page="/Search" class="btn btn-outline-secondary">Show all items</a>
 </form>
 
 @if (Model.Results.Count == 0)
 {
-    <p class="alert alert-light border" role="status">No items found. Try another search or choose a different item type.</p>
+    <p role="status">No items found. Try another search, or check with library staff that inventory has been added.</p>
 }
 else
 {
     <p role="status">@Model.Results.Count items found</p>
     <div class="table-responsive">
-        <table class="results mt-2">
+        <table class="table">
             <thead>
-                <tr><th scope="col">Type</th><th scope="col">Name</th><th scope="col">Details</th><th scope="col">Status</th></tr>
+                <tr><th scope="col">Type</th><th scope="col">Name</th><th scope="col">Details</th><th scope="col">Status</th><th scope="col">Barcode</th></tr>
             </thead>
             <tbody>
             @foreach (var item in Model.Results)
@@ -46,7 +40,8 @@ else
                     <td>@item.Type</td>
                     <td><a asp-page="/ItemDetails" asp-route-id="@item.Id">@item.Name</a></td>
                     <td>@item.DetailsSummary()</td>
-                    <td><span class="pill @(item.Status == "Available" ? "pill-ok" : "pill-off")">@item.Status</span></td>
+                    <td>@item.Status</td>
+                    <td>@item.barcode</td>
                 </tr>
             }
             </tbody>
