@@ -9,10 +9,10 @@
     <p class="eyebrow">@i.Type</p>
     <h1>@i.Name</h1>
 </section>
-    @if (TempData["Message"] != null)
-    {
-        <p style="color: #2f6b3a; font-weight: bold;">@TempData["Message"]</p>
-    }
+@if (TempData["Message"] != null)
+{
+    <p style="color: #2f6b3a; font-weight: bold;">@TempData["Message"]</p>
+}
 
 <section class="overview">
     <table class="hours">
@@ -52,14 +52,15 @@
         }
     </table>
 </section>
-@if (i.Status == "Available" && (User.IsInRole("Staff") || User.IsInRole("Admin")))
-{
-    <p><a class="button button-primary" asp-page="/Checkout" asp-route-itemId="@i.Id">Check out</a></p>
-}
 <div style="display: flex; justify-content: space-between;">
-    <a class="button" href="javascript:history.back()">← Back</a>
+    @if (i.Status == "Available" && (User.IsInRole("Staff") || User.IsInRole("Admin")))
+    {
+        <p><a class="button button-primary" asp-page="/Checkout" asp-route-itemId="@i.Id">Check out</a></p>
+    }
     @if ((User.IsInRole("Staff") || User.IsInRole("Admin")))
     {
-    <a class="button button-primary" asp-page="/AddInventoryItem" asp-route-ItemId="@i.Id">Add inventory item</a>
+        <a class="button button-primary" asp-page="/AddInventoryItem" asp-route-ItemId="@i.Id">Edit Item</a>
     }
 </div>
+<a class="button" href="javascript:history.back()">← Back</a>
+
