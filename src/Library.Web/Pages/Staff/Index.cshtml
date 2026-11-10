@@ -2,15 +2,13 @@
 @model Project.Pages.Staff.IndexModel
 @{
     ViewData["Title"] = "Staff Dashboard";
-    var hour = DateTime.Now.Hour;
-    string greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
 <!-- Header -->
 <div class="report-header">
     <div>
-        <p class="eyebrow">@DateTime.Today.ToString("dddd, MMMM d, yyyy")</p>
-        <h1>@greeting</h1>
+        <p class="eyebrow" id="staff-dashboard-date"></p>
+        <h1 id="staff-dashboard-greeting">Staff Dashboard</h1>
         <p class="report-lede">Here is what needs attention in the library today.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -186,3 +184,38 @@
         </table>
     </section>
 </div>
+
+@section Scripts {
+    <script>
+        const dashboardGreeting = document.getElementById("staff-dashboard-greeting");
+        const dashboardDate = document.getElementById("staff-dashboard-date");
+        const dashboardDateFormat = new Intl.DateTimeFormat("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric"
+        });
+
+        function updateDashboardHeader() {
+            const now = new Date();
+            const hour = now.getHours();
+            let greeting;
+
+            if (hour < 5 || hour >= 21) {
+                greeting = "Good Night";
+            } else if (hour < 12) {
+                greeting = "Good Morning";
+            } else if (hour < 17) {
+                greeting = "Good Afternoon";
+            } else {
+                greeting = "Good Evening";
+            }
+
+            dashboardGreeting.textContent = greeting;
+            dashboardDate.textContent = dashboardDateFormat.format(now);
+        }
+
+        updateDashboardHeader();
+        window.setInterval(updateDashboardHeader, 30_000);
+    </script>
+}
