@@ -2,8 +2,6 @@
 @model Project.Pages.Staff.IndexModel
 @{
     ViewData["Title"] = "Staff Dashboard";
-    var hour = DateTime.Now.Hour;
-    string greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
 <div class="staff-layout">
@@ -20,6 +18,9 @@
         <a asp-page="/Staff/Fines">Fines &amp; payments</a>
         <a asp-page="/Staff/Maintenance">Maintenance</a>
 
+        <p class="staff-menu-title">Rooms</p>
+        <a asp-page="/Staff/RoomSetupTasks">Room setup</a>
+
         <p class="staff-menu-title">Members</p>
         <a asp-page="/Staff/Users">Manage users</a>
         <a asp-page="/Staff/Directory">Staff &amp; faculty</a>
@@ -28,17 +29,20 @@
         <a asp-page="/Inventory">Inventory</a>
         <a asp-page="/AddInventoryItem">Add an item</a>
 
-        <p class="staff-menu-title">Reports</p>
-        <a asp-page="/CollectionPerformance">Circulation &amp; collection</a>
-        <a asp-page="/OverdueFines">Overdue returns &amp; fines</a>
-        <a asp-page="/EquipmentMaintenance">Equipment maintenance</a>
+        @if (User.IsInRole("Admin"))
+        {
+            <p class="staff-menu-title">Reports</p>
+            <a asp-page="/CollectionPerformance">Circulation &amp; collection</a>
+            <a asp-page="/OverdueFines">Overdue returns &amp; fines</a>
+            <a asp-page="/EquipmentMaintenance">Equipment maintenance</a>
+        }
     </aside>
 
     <div class="staff-main">
         <div class="report-header">
             <div>
-                <p class="eyebrow">@DateTime.Today.ToString("dddd, MMMM d")</p>
-                <h1>@greeting</h1>
+                <p class="eyebrow" id="staff-dashboard-date"></p>
+                <h1 id="staff-dashboard-greeting">Staff Dashboard</h1>
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <a class="btn btn-library" asp-page="/Staff/StartCheckout">Check out</a>
@@ -61,7 +65,20 @@
             <a class="attention @(Model.PickupsWaiting > 0 ? "attention-warn" : "")" asp-page="/Staff/Pickups">
                 <span class="attention-value">@Model.PickupsWaiting</span>
                 <span class="attention-label">pickup@(Model.PickupsWaiting == 1 ? "" : "s") waiting</span>
-                <span class="attention-note">@(Model.PickupsWaiting > 0 ? "Requested online, ready to hand out" : "No checkout requests")</span>
+                <span class="attention-note">
+                    @(Model.PickupsWaiting > 0 ? "Set aside, ready to hand out" : "Nothing to hand out")
+                    @(Model.HoldsWaiting > 0 ? $" · {Model.HoldsWaiting} on hold lists" : "")
+                </span>
+            </a>
+
+            <a class="attention @(Model.OpenRoomSetupTasks > 0 ? "attention-warn" : "")" asp-page="/Staff/RoomSetupTasks">
+                <span class="attention-value">@Model.OpenRoomSetupTasks</span>
+                <span class="attention-label">room setup@(Model.OpenRoomSetupTasks == 1 ? "" : "s")</span>
+                <span class="attention-note">
+                    @(Model.RoomSetupTasks.Count > 0
+                        ? $"Next: {Model.RoomSetupTasks[0].RoomId} on {Model.RoomSetupTasks[0].StartTime:MMM d}"
+                        : "No rooms waiting for setup")
+                </span>
             </a>
 
             <a class="attention @(Model.OpenRepairs > 0 ? "attention-warn" : "")" asp-page="/Staff/Maintenance">
@@ -78,3 +95,36 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Greeting and date use the computer's own clock, so they're right on Render too
+        const dashboardGreeting = document.getElementById("staff-dashboard-greeting");
+        const dashboardDate = document.getElementById("staff-dashboard-date");
+        const dashboardDateFormat = new Intl.DateTimeFormat("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric"
+        });
+
+        function updateDashboardHeader() {
+            const hour = new Date().getHours();
+            let greeting;
+            if (hour < 5 || hour >= 21) {
+                greeting = "Good Night";
+            } else if (hour < 12) {
+                greeting = "Good Morning";
+            } else if (hour < 17) {
+                greeting = "Good Afternoon";
+            } else {
+                greeting = "Good Evening";
+            }
+            dashboardGreeting.textContent = greeting;
+            dashboardDate.textContent = dashboardDateFormat.format(new Date());
+        }
+
+        updateDashboardHeader();
+        window.setInterval(updateDashboardHeader, 30_000);
+    </script>
+}

@@ -20,11 +20,13 @@ namespace Project.Auth
               (actor.IsInRole("Staff") || actor.IsInRole("Admin")))
              || (targetRole == "Staff" && actor.IsInRole("Admin")));
 
-        // Staff cannot edit an Admin account or make someone an Admin
+        // Only admins manage employee accounts; staff may manage student/faculty accounts.
         public static bool CanManageAccountRole(ClaimsPrincipal actor, string? currentRole, string? requestedRole) =>
             actor.Identity?.IsAuthenticated == true &&
             (actor.IsInRole("Admin") ||
-             (actor.IsInRole("Staff") && currentRole != "Admin" && requestedRole != "Admin"));
+             (actor.IsInRole("Staff") &&
+              (currentRole == null || currentRole == "Student" || currentRole == "Faculty") &&
+              (requestedRole == null || requestedRole == "Student" || requestedRole == "Faculty")));
 
         public static async Task<bool> CanSignInAsync(
             LibraryDbContext db,

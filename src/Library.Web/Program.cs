@@ -50,32 +50,32 @@ builder.Services.AddRazorPages(options =>
         "/Checkout",
         "LibraryStaff");
 
+    // Reports and the record pages behind them: admin only
     options.Conventions.AuthorizePage(
         "/CollectionPerformance",
-        "LibraryStaff");
+        "LibraryAdmin");
 
     options.Conventions.AuthorizePage(
         "/OverdueFines",
-        "LibraryStaff");
+        "LibraryAdmin");
 
     options.Conventions.AuthorizePage(
         "/EquipmentMaintenance",
-        "LibraryStaff");
+        "LibraryAdmin");
 
-     
     options.Conventions.AuthorizePage(
         "/OverdueRecords",
-        "LibraryStaff");
+        "LibraryAdmin");
 
     options.Conventions.AuthorizePage(
         "/MaintenanceRecords",
-        "LibraryStaff");
+        "LibraryAdmin");
 
     options.Conventions.AuthorizePage(
         "/CirculationRecords",
-        "LibraryStaff");
+        "LibraryAdmin");
 
-    // Member pages (any signed-in user)
+    
     options.Conventions.AuthorizePage("/ReadingList");
     options.Conventions.AuthorizePage("/MyFines");
 });
@@ -113,6 +113,12 @@ builder.Services.AddDbContext<LibraryDbContext>(options =>
 
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("LibraryAdmin", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("Admin");
+    });
+
     options.AddPolicy("LibraryStaff", policy =>
     {
         policy.RequireAuthenticatedUser();

@@ -22,6 +22,7 @@
             <nav aria-label="Main navigation">
                 <a asp-page="/Index" aria-current="page">Home</a>
                 <a asp-page="/Search">Library Catalog</a>
+                <a asp-page="/Rooms">Rooms</a>
                 <a href="#about">About</a>
 
                 @if (User.Identity?.IsAuthenticated == true)
@@ -94,6 +95,9 @@
                         across a variety of subjects. Browse the catalog
                         to see what is available.
                     </p>
+                    <a class="button" asp-page="/Search">
+                        Browse the catalog
+                    </a>
                 </article>
 
                 <article class="card">
@@ -103,8 +107,8 @@
                         through your next assignment in a comfortable
                         learning environment.
                     </p>
-                    <a class="button" asp-page="/RoomReservations">
-                        Reserve a room
+                    <a class="button" asp-page="/Rooms">
+                        View room availability
                     </a>
                 </article>
 
@@ -128,7 +132,6 @@
                     <h3>Library Hours</h3>
 
                     <table class="hours">
-                        <caption>Sample regular opening hours</caption>
                         <tbody>
                             <tr>
                                 <th scope="row">Monday–Thursday</th>

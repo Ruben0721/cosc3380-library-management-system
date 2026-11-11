@@ -4,7 +4,10 @@ using Project.Data;
 
 namespace Project.Pages.Staff
 {
-    // Staff dashboard: only what needs attention today.
+    public record DashRoomSetupRow(string RoomId, string ReservationId, DateTime StartTime,
+        DateTime EndTime, int NumberOfPeople);
+
+    
     public class IndexModel : PageModel
     {
         private readonly LibraryDbContext _db;
@@ -12,19 +15,32 @@ namespace Project.Pages.Staff
 
         private static readonly string[] OpenStatuses = { "Open", "In Progress" };
 
+        // Loans
         public int OverdueNow { get; set; }
         public decimal OverdueAccruing { get; set; }
         public int DueToday { get; set; }
+
+        // Fines
         public decimal UnpaidTotal { get; set; }
         public int UnpaidMembers { get; set; }
+
+        // Repairs
         public int OpenRepairs { get; set; }
         public int OldestRepairDays { get; set; }
-        public int PickupsWaiting { get; set; }
+
+        // Pickups and holds
+        public int PickupsWaiting { get; set; }     // set aside at the desk (Status "Ready")
+        public int HoldsWaiting { get; set; }       // members waiting in line (Status "Pending")
+
+        // Room setup
+        public int OpenRoomSetupTasks { get; set; }
+        public List<DashRoomSetupRow> RoomSetupTasks { get; set; } = new();
 
         public async Task OnGetAsync()
         {
             var now = DateTime.Now;
             var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
 
             // Overdue loans and the fines building up on them
             var active = await _db.Rentals.AsNoTracking()
@@ -32,7 +48,7 @@ namespace Project.Pages.Staff
                 .Select(r => new { r.ItemId, r.EndDate })
                 .ToListAsync();
 
-            DueToday = active.Count(r => r.EndDate != null && r.EndDate.Value.Date == today);
+            DueToday = active.Count(r => r.EndDate >= today && r.EndDate < tomorrow);
 
             var itemTypes = await _db.Inventory.AsNoTracking()
                 .Select(i => new { i.Id, i.Type })
@@ -63,8 +79,27 @@ namespace Project.Pages.Staff
             OpenRepairs = openRequests.Count;
             OldestRepairDays = openRequests.Count == 0 ? 0 : openRequests.Max(c => (now - c).Days);
 
-            // Checkout requests placed online, waiting to be handed out at the desk
+            // Items set aside at the desk, and members waiting in line
             PickupsWaiting = await _db.Holds.CountAsync(h => h.Status == "Ready");
+            HoldsWaiting = await _db.Holds.CountAsync(h => h.Status == "Pending");
+
+            // Rooms to set up before confirmed reservations
+            RoomSetupTasks = await (from task in _db.RoomSetupTasks.AsNoTracking()
+                                    join reservation in _db.RoomReservations.AsNoTracking()
+                                        on task.ReservationId equals reservation.ReservationId
+                                    where task.Status == "Open"
+                                       && reservation.Status == "Confirmed"
+                                    orderby reservation.StartTime
+                                    select new DashRoomSetupRow(
+                                        task.RoomId,
+                                        task.ReservationId,
+                                        reservation.StartTime,
+                                        reservation.EndTime,
+                                        reservation.NumberOfPeople))
+                .Take(5)
+                .ToListAsync();
+            OpenRoomSetupTasks = await _db.RoomSetupTasks
+                .CountAsync(t => t.Status == "Open");
         }
     }
 }

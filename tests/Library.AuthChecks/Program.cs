@@ -70,4 +70,11 @@ Check(!ValidChange("OldPassword12", "OldPassword12", "OldPassword12"), "Reusing 
 Check(ValidChange("OldPassword12", "TwelveChars12", "TwelveChars12"), "Valid change accepted");
 Check(Attribute.IsDefined(typeof(Project.Pages.Account.ChangePasswordModel),
     typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute)), "Change password requires authentication");
+
+
+// Employee account management is reserved for administrators.
+Check(!AccountAccessRules.CanManageAccountRole(Actor("Staff"), "Staff", "Staff"), "Staff editing another staff account denied");
+Check(!AccountAccessRules.CanManageAccountRole(Actor("Staff"), null, "Staff"), "Staff account creation denied");
+Check(!AccountAccessRules.CanManageAccountRole(Actor("Staff"), "Staff", "Faculty"), "Staff cannot bypass protection by changing the target role");
+Check(AccountAccessRules.CanManageAccountRole(Actor("Admin"), "Staff", "Staff"), "Admin editing staff allowed");
 Console.WriteLine($"Passed {checks} authentication and password validation checks. No database accessed.");

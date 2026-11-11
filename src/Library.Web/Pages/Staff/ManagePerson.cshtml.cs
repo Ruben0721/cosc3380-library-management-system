@@ -177,6 +177,7 @@ namespace Project.Pages.Staff
 
         public async Task<IActionResult> OnGetAsync()
         {
+            if (IsStaff && !User.IsInRole("Admin")) return Forbid();
             string? problem = await LoadPersonAsync();
 
             if (problem != null)
@@ -218,6 +219,8 @@ namespace Project.Pages.Staff
 
         public async Task<IActionResult> OnPostAsync()
         {
+            // Also protect employee records that do not have a login yet.
+            if (IsStaff && !User.IsInRole("Admin")) return Forbid();
             try
             {
                 await using var transaction =

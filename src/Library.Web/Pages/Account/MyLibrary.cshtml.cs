@@ -11,6 +11,8 @@ namespace Project.Pages.Account;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class MyLibraryModel(LibraryDbContext db) : PageModel
 {
+    public string ActiveTab { get; private set; } = "overview";
+
     public string Email { get; private set; } = "";
     public string Role { get; private set; } = "";
     public string? FullName { get; private set; }
@@ -26,8 +28,15 @@ public class MyLibraryModel(LibraryDbContext db) : PageModel
     public List<RoomReservationRow> RoomReservations { get; private set; } = new();
     public decimal TotalDue => Fines.Sum(f => f.Amount);
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(string? tab)
     {
+        // Recognized sections only
+        ActiveTab = tab switch
+        {
+            "checkouts" or "requests" or "fines" or "personal" => tab,
+            _ => "overview"
+        };
+
         // Use the account ID from the login cookie so people only see their own records
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
             return Challenge();

@@ -1,0 +1,78 @@
+@page
+@model Project.Pages.RoomsModel
+@{
+	ViewData["Title"] = "Room Availability";
+}
+
+<div class="report-header">
+	<div>
+		<p class="eyebrow">Library spaces</p>
+		<h1>Room Availability</h1>
+		<p class="report-lede">Browse active rooms, check their capacity, and see when reservations make them unavailable.</p>
+	</div>
+</div>
+
+<section class="overview mb-4">
+	<h2>Available rooms</h2>
+	<p class="text-muted">Rooms remain listed even when they have reservations. Check the unavailable times before choosing a room.</p>
+</section>
+
+@if (Model.Rooms.Count == 0)
+{
+	<p role="status">No active rooms are available right now.</p>
+}
+else
+{
+	<div class="table-responsive">
+		<table class="results">
+			<thead>
+				<tr>
+					<th scope="col">Room</th>
+					<th scope="col">Capacity</th>
+					<th scope="col">Unavailable times</th>
+					<th scope="col">Action</th>
+				</tr>
+			</thead>
+			<tbody>
+			@foreach (var room in Model.Rooms)
+			{
+				<tr>
+					<td>
+						<strong>@room.RoomId</strong>
+						@if (!string.IsNullOrWhiteSpace(room.Status))
+						{
+							<br />
+							<small class="text-muted">@room.Status</small>
+						}
+					</td>
+					<td>@room.Capacity people</td>
+					<td>
+						@if (room.UnavailablePeriods.Count == 0)
+						{
+							<span class="text-success">No current or upcoming reservations</span>
+						}
+						else
+						{
+							<ul class="list-unstyled mb-0">
+							@foreach (var period in room.UnavailablePeriods)
+							{
+								<li>
+									@period.StartTime.ToString("MMM d, yyyy h:mm tt")
+									–
+									@period.EndTime.ToString("MMM d, yyyy h:mm tt")
+								</li>
+							}
+							</ul>
+						}
+					</td>
+					<td>
+						<a asp-page="/RoomReservations" class="btn btn-sm btn-primary">Reserve this room</a>
+					</td>
+				</tr>
+			}
+			</tbody>
+		</table>
+	</div>
+}
+
+<p class="text-muted mt-3">Reservation availability can change as other users book rooms. Review the latest times on the reservation page before submitting.</p>

@@ -4,120 +4,212 @@
 @{
     ViewData["Title"] = "My Library Account";
     var dollars = CultureInfo.GetCultureInfo("en-US");
+    var tabs = new[] { ("overview", "Overview"), ("checkouts", "Checkouts"),
+        ("requests", "Requests"), ("fines", "Fines"), ("personal", "Personal Info") };
 }
 
-<h1>My Library Account</h1>
-<p><a asp-page="/Account/ChangePassword">Change Password</a></p>
-<p><strong>@Model.FullName</strong> &middot; @Model.Role &middot; @Model.Email</p>
-
-@if (Model.FullName == null)
-{
-    <p class="alert alert-warning">Contact library staff to link your borrower record and view your library activity.</p>
-}
-else
-{
-    <section class="mb-4">
-        <h2 class="h4">Items checked out</h2>
-        @if (Model.Loans.Count == 0)
+<div class="library-account">
+    <h1>My Library Account</h1>
+    <p class="text-muted">Your library activity and account details.</p>
+    <nav class="account-tabs" aria-label="My Library Account sections">
+        @foreach (var (key, label) in tabs)
         {
-            <p>You have no items checked out.</p>
+            <a asp-page="/Account/MyLibrary" asp-route-tab="@key"
+               class="account-tab @(Model.ActiveTab == key ? "active" : "")"
+               aria-current="@(Model.ActiveTab == key ? "page" : null)">@label</a>
         }
-        else
+    </nav>
+    @if (Model.FullName == null)
+    {
+        <p class="alert alert-warning">Contact library staff to link your borrower record and view your library activity.</p>
+    }
+    @if (Model.ActiveTab == "personal")
+    {
+        <section class="library-account-panel">
+            <h2 class="h4">Personal Info</h2>
+            <p>Review the details linked to your library account.</p>
+            <dl class="account-details">
+                <div><dt>Name</dt><dd>@(Model.FullName ?? "Borrower record not linked")</dd></div>
+                <div><dt>Email</dt><dd>@Model.Email</dd></div>
+                <div><dt>Account role</dt><dd>@Model.Role</dd></div>
+            </dl>
+            <div class="account-security">
+                <h3 class="h5">Password</h3>
+                <p>Change your password using your current password and a new password of at least 12 characters. After a successful change, you will need to sign in again.</p>
+                <a class="btn btn-outline-primary" asp-page="/Account/ChangePassword">Change Password</a>
+            </div>
+        </section>
+    }
+    else if (Model.FullName != null)
+    {
+        @if (Model.ActiveTab == "overview")
         {
-            <table class="table">
-                <thead><tr><th>Item</th><th>Due date</th></tr></thead>
-                <tbody>
-                @foreach (var loan in Model.Loans)
-                {
-                    <tr><td>@(loan.Item ?? "Item name unavailable")</td>
-                        <td>@(loan.Due?.ToString("MMM d, yyyy") ?? "No due date")
-                            @if (loan.Due < DateTime.Today)
+            <section aria-labelledby="overview-heading">
+                <h2 id="overview-heading" class="h4 mb-3">Overview</h2>
+                <p>Welcome, @Model.FullName. Here is a summary of your current library activity. Select a section to see the details.</p>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <section class="library-account-panel account-summary">
+                            <h3 class="h5">Checkouts</h3>
+                            <p class="account-value">@Model.Loans.Count</p>
+                            <p>Items currently checked out</p>
+                            @if (Model.Loans.Any(l => l.Due < DateTime.Today))
                             {
-                                <strong class="text-danger">Overdue</strong>
+                                <p class="text-danger fw-bold">@Model.Loans.Count(l => l.Due < DateTime.Today) overdue</p>
                             }
-                        </td></tr>
-                }
-                </tbody>
-            </table>
-        }
-    </section>
+                            <a asp-page="/Account/MyLibrary" asp-route-tab="checkouts">View checkouts &rarr;</a>
+                        </section>
+                    </div>
+                    <div class="col-md-4">
+                        <section class="library-account-panel account-summary">
+                            <h3 class="h5">Requests</h3>
+                            <p class="account-value">@Model.Holds.Count</p>
+                            <p>Active holds</p>
+                            @if (Model.Holds.Any(h => h.Status == "Ready"))
+                            {
+                                <p class="fw-bold">@Model.Holds.Count(h => h.Status == "Ready") ready for pickup</p>
+                            }
+                            <a asp-page="/Account/MyLibrary" asp-route-tab="requests">View requests &rarr;</a>
+                        </section>
+                    </div>
+                    <div class="col-md-4">
+                        <section class="library-account-panel account-summary">
+                            <h3 class="h5">Fines</h3>
+                            <p class="account-value">@Model.TotalDue.ToString("C", dollars)</p>
+                            <p>Unpaid balance</p>
 
-    <section class="mb-4">
-        <h2 class="h4">Requested holds</h2>
-        @if (Model.Holds.Count == 0)
-        {
-            <p>You have no active holds.</p>
+                            <a asp-page="/Account/MyLibrary" asp-route-tab="fines">View fines &rarr;</a>
+                        </section>
+                    </div>
+                </div>
+            </section>
         }
-        else
+        else if (Model.ActiveTab == "checkouts")
         {
-            <table class="table">
-                <thead><tr><th>Item</th><th>Status</th><th>Pickup deadline</th></tr></thead>
-                <tbody>
-                @foreach (var hold in Model.Holds)
-                {
-                    <tr><td>@(hold.Item ?? "Item name unavailable")</td>
-                        <td>@(hold.Status == "Ready" ? "Ready for pickup" : hold.Status)</td>
-                        <td>@(hold.Deadline?.ToString("MMM d, yyyy") ?? "—")</td></tr>
-                }
-                </tbody>
-            </table>
+            <div class="library-account-panel">
+                <section class="mb-4">
+                    <h2 class="h4">Items checked out</h2>
+                    <p>These are the items currently borrowed on your account, listed by due date. Check the dates below and return items on time to avoid overdue charges.</p>
+                    @if (Model.Loans.Count == 0)
+                    {
+                        <p>You have no items checked out. <a asp-page="/Search">Browse the catalog</a> to find your next item.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table">
+                            <thead><tr><th>Item</th><th>Due date</th></tr></thead>
+                            <tbody>
+                            @foreach (var loan in Model.Loans)
+                            {
+                                <tr><td>@(loan.Item ?? "Item name unavailable")</td>
+                                    <td>@(loan.Due?.ToString("MMM d, yyyy") ?? "No due date")
+                                        @if (loan.Due < DateTime.Today)
+                                        {
+                                            <strong class="text-danger">Overdue</strong>
+                                        }
+                                    </td></tr>
+                            }
+                            </tbody>
+                        </table></div>
+                    }
+                </section>
+            </div>
         }
-    </section>
+        else if (Model.ActiveTab == "requests")
+        {
+            <div class="library-account-panel">
 
-    <section>
-        <h2 class="h4">Room reservations</h2>
-        <p><a asp-page="/RoomReservations">Reserve a room or view all reservations</a></p>
-        @if (Model.RoomReservations.Count == 0)
-        {
-            <p>You have no room reservations.</p>
-        }
-        else
-        {
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Room</th>
-                        <th>When</th>
-                        <th>People</th>
-                        <th>Purpose</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var reservation in Model.RoomReservations)
-                {
-                    <tr>
-                        <td>@reservation.RoomId</td>
-                        <td>
-                            @reservation.StartTime.ToString("MMM d, yyyy h:mm tt")<br />
-                            to @reservation.EndTime.ToString("h:mm tt")
-                        </td>
-                        <td>@reservation.NumberOfPeople</td>
-                        <td>@reservation.Purpose</td>
-                        <td>@reservation.Status</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        }
-    </section>
+                <section class="mb-4">
+                    <h2 class="h4">Requested holds</h2>
+                    <p>Track your active item requests here. Pending holds are still waiting; ready holds are available for pickup. When a pickup deadline is shown, collect the item before that date.</p>
+                    @if (Model.Holds.Count == 0)
+                    {
+                        <p>You have no active holds. Any pending or ready-for-pickup requests will appear here.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table">
+                            <thead><tr><th>Item</th><th>Status</th><th>Pickup deadline</th></tr></thead>
+                            <tbody>
+                            @foreach (var hold in Model.Holds)
+                            {
+                                <tr><td>@(hold.Item ?? "Item name unavailable")</td>
+                                    <td>@(hold.Status == "Ready" ? "Ready for pickup" : hold.Status)</td>
+                                    <td>@(hold.Deadline?.ToString("MMM d, yyyy") ?? "—")</td></tr>
+                            }
+                            </tbody>
+                        </table></div>
+                    }
+                </section>
 
-    <section>
-        <h2 class="h4">Fines due</h2>
-        <p>Total owed: <strong>@Model.TotalDue.ToString("C", dollars)</strong></p>
-        @if (Model.Fines.Count > 0)
-        {
-            <table class="table">
-                <thead><tr><th>Item</th><th>Reason</th><th>Amount</th></tr></thead>
-                <tbody>
-                @foreach (var fine in Model.Fines)
-                {
-                    <tr><td>@(fine.Item ?? "Item name unavailable")</td><td>@fine.Reason</td>
-                        <td>@fine.Amount.ToString("C", dollars)</td></tr>
-                }
-                </tbody>
-            </table>
+                <section>
+                    <h2 class="h4">Room reservations</h2>
+                    <p>Review the times and status of room reservations linked to your account.</p>
+                    @if (Model.RoomReservations.Count == 0)
+                    {
+                        <p>You have no room reservations.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Room</th>
+                                    <th>When</th>
+                                    <th>People</th>
+                                    <th>Purpose</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var reservation in Model.RoomReservations)
+                            {
+                                <tr>
+                                    <td>@reservation.RoomId</td>
+                                    <td>
+                                        @reservation.StartTime.ToString("MMM d, yyyy h:mm tt")<br />
+                                        to @reservation.EndTime.ToString("h:mm tt")
+                                    </td>
+                                    <td>@reservation.NumberOfPeople</td>
+                                    <td>@reservation.Purpose</td>
+                                    <td>@reservation.Status</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table></div>
+                    }
+                </section>
+            </div>
         }
-    </section>
-    <partial name="_MyLoans" />
-}
+        else if (Model.ActiveTab == "fines")
+        {
+            <div class="library-account-panel">
+
+                <section>
+                    <h2 class="h4">Fines due</h2>
+                    <p>This section lists unpaid charges linked to your account, including the item, reason, and amount. You can pay online or at the circulation desk.</p>
+                    <p>Total owed: <strong>@Model.TotalDue.ToString("C", dollars)</strong></p>
+                    @if (Model.Fines.Count == 0)
+                    {
+                        <p>You have no unpaid fines. There is no outstanding balance on your account.</p>
+                        <a class="btn btn-outline-secondary" asp-page="/MyFines">Payment history</a>
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table">
+                            <thead><tr><th>Item</th><th>Reason</th><th>Amount</th></tr></thead>
+                            <tbody>
+                            @foreach (var fine in Model.Fines)
+                            {
+                                <tr><td>@(fine.Item ?? "Item name unavailable")</td><td>@fine.Reason</td>
+                                    <td>@fine.Amount.ToString("C", dollars)</td></tr>
+                            }
+                            </tbody>
+                        </table></div>
+                        <a class="btn btn-library" asp-page="/MyFines">Pay @Model.TotalDue.ToString("C", dollars) online</a>
+                    }
+                </section>
+            </div>
+        }
+    }
+</div>
