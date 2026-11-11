@@ -1,0 +1,32 @@
+@page
+@model Project.Pages.OverdueRecordsModel
+@{
+    ViewData["Title"] = "Supporting records – Overdue Returns & Fines";
+    var from = Model.From?.ToString("yyyy-MM-dd");
+    var to = Model.To?.ToString("yyyy-MM-dd");
+    var tabs = new[] { ("loans", "Loans due"), ("overdue-now", "Overdue now"), ("fines", "Fines"), ("payments", "Payments") };
+}
+
+<div class="report-header">
+    <div>
+        <p class="eyebrow">Supporting records · Overdue Returns &amp; Fines</p>
+        <h1>@Model.Table.Title</h1>
+        <p class="report-lede">@Model.Table.Description</p>
+        <p class="report-meta">@string.Join(" · ", Model.Narrowing)</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 no-print">
+        <a class="btn btn-library-outline" asp-page="/OverdueRecords" asp-page-handler="Csv" asp-all-route-data="Model.RouteValues()">Download CSV</a>
+        <a class="btn btn-outline-secondary" asp-page="/OverdueFines" asp-route-From="@from" asp-route-To="@to"
+           asp-route-Category="@Model.Category" asp-route-BorrowerType="@Model.BorrowerType">Back to report</a>
+    </div>
+</div>
+
+<div class="records-tabs no-print" role="navigation" aria-label="Record type">
+    @foreach (var (key, label) in tabs)
+    {
+        <a class="@(Model.Show == key ? "active" : "")" asp-page="/OverdueRecords" asp-route-Show="@key"
+           asp-route-From="@from" asp-route-To="@to" asp-route-Category="@Model.Category" asp-route-BorrowerType="@Model.BorrowerType">@label</a>
+    }
+</div>
+
+<partial name="_RecordTable" model="Model.Table" />

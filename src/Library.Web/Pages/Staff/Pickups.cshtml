@@ -1,0 +1,65 @@
+@page
+@model Project.Pages.Staff.PickupsModel
+@{
+    ViewData["Title"] = "Pickups";
+}
+
+<div class="report-header">
+    <div>
+        <p class="eyebrow">Circulation</p>
+        <h1>Pickups</h1>
+        <p class="report-lede">Items members requested online. Pull each item from the shelf, check the member's ID at pickup, then hand it out to start the loan.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="status">
+        @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.Waiting.Count == 0)
+{
+    <p>No checkout requests are waiting to be picked up.</p>
+}
+else
+{
+    <table class="results">
+        <tr><th>Item</th><th>Category</th><th>Member</th><th>Requested</th><th>Pick up by</th><th class="num"></th></tr>
+        @foreach (var p in Model.Waiting)
+        {
+            <tr>
+                <td><strong>@p.ItemName</strong></td>
+                <td>@p.Category</td>
+                <td>@p.Member</td>
+                <td>@p.Reserved.ToString("MMM d, h:mm tt")</td>
+                <td>
+                    @(p.Deadline?.ToString("MMM d") ?? "—")
+                    @if (p.DueToday) { <span class="pill pill-warn">Today</span> }
+                </td>
+                <td class="num">
+                    <div class="d-inline-flex gap-2">
+                        <form method="post" asp-page-handler="HandOver">
+                            <input type="hidden" name="holdId" value="@p.HoldId" />
+                            <button type="submit" class="btn btn-sm btn-library">Hand out</button>
+                        </form>
+                        <form method="post" asp-page-handler="Cancel">
+                            <input type="hidden" name="holdId" value="@p.HoldId" />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Cancel</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        }
+    </table>
+    <p class="report-meta">Requests not picked up by their deadline expire automatically and the item becomes free again.</p>
+}

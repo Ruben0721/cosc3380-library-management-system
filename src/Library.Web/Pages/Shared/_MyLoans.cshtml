@@ -1,0 +1,163 @@
+@* The signed-in member's current loans, items ready for pickup, holds, and unpaid fines.
+   Add to My Library Account with:  <partial name="_MyLoans" />  *@
+@using Microsoft.EntityFrameworkCore
+@inject Project.Data.LibraryDbContext Db
+@{
+    int? memberId = int.TryParse(User.FindFirst("library_user_id")?.Value, out var mid) ? mid : null;
+}
+
+@if (memberId == null)
+{
+    return;
+}
+
+@{
+    var today = DateTime.Today;
+    var items = Db.Inventory.AsNoTracking().Select(i => new { i.Id, i.Name, i.Type }).ToDictionary(i => i.Id);
+    var policies = Db.FinePolicies.AsNoTracking().ToDictionary(p => p.ItemType);
+
+    var loans = Db.Rentals.AsNoTracking()
+        .Where(r => r.LibraryUserId == memberId && !r.IsReturned)
+        .OrderBy(r => r.EndDate)
+        .ToList();
+
+    var pickups = Db.Holds.AsNoTracking()
+        .Where(h => h.LibraryUserId == memberId && h.Status == "Ready" && h.ItemId != null)
+        .OrderBy(h => h.PickupDeadline)
+        .ToList();
+
+    var fines = Db.Fines.AsNoTracking()
+        .Where(f => f.LibraryUserId == memberId && !f.IsPaid)
+        .OrderBy(f => f.DateAssessed)
+        .ToList();
+    var rentalItem = Db.Rentals.AsNoTracking()
+        .Where(r => r.LibraryUserId == memberId)
+        .Select(r => new { r.RentalId, r.ItemId })
+        .ToDictionary(r => r.RentalId, r => r.ItemId);
+
+    string Name(int id) => items.TryGetValue(id, out var i) ? i.Name ?? $"Item #{id}" : $"Item #{id}";
+
+    // Holds still waiting, with the member's place in line for that title
+    var allPending = Db.Holds.AsNoTracking().Where(h => h.Status == "Pending" && h.ItemId != null).ToList();
+    var myHolds = allPending.Where(h => h.LibraryUserId == memberId).OrderBy(h => h.RequestDatetime).ToList();
+    int PlaceInLine(Project.Models.Hold mine)
+    {
+        if (!items.TryGetValue(mine.ItemId!.Value, out var it)) return 1;
+        var sameTitle = items.Values.Where(i => i.Name == it.Name && i.Type == it.Type).Select(i => i.Id).ToHashSet();
+        return allPending.Count(h => sameTitle.Contains(h.ItemId!.Value) && h.RequestDatetime < mine.RequestDatetime) + 1;
+    }
+    int savedCount = Db.ReadingList.AsNoTracking().Count(r => r.LibraryUserId == memberId);
+    decimal unpaidTotal = fines.Sum(f => f.Amount);
+}
+
+<section class="report-section">
+    <h2>My loans (@loans.Count)</h2>
+    @if (loans.Count == 0)
+    {
+        <p>You have nothing checked out. <a asp-page="/Search">Browse the catalog</a> to borrow something.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr><th>Item</th><th>Checked out</th><th>Due</th><th>Status</th><th class="num">Fine so far</th></tr>
+            @foreach (var r in loans)
+            {
+                var due = r.EndDate ?? r.StartDate;
+                int daysLate = (today - due.Date).Days;
+                decimal fine = 0;
+                if (daysLate > 0 && items.TryGetValue(r.ItemId, out var it) && it.Type != null && policies.TryGetValue(it.Type, out var p))
+                {
+                    fine = Math.Min(daysLate * p.DailyOverdueRate, p.OverdueCap);
+                }
+                <tr>
+                    <td><strong>@Name(r.ItemId)</strong></td>
+                    <td>@r.StartDate.ToString("MMM d, yyyy")</td>
+                    <td>@due.ToString("ddd, MMM d")</td>
+                    <td>
+                        @if (daysLate > 0) { <span class="pill pill-warn">@daysLate day@(daysLate == 1 ? "" : "s") overdue</span> }
+                        else if (daysLate >= -2) { <span class="pill pill-warn">Due soon</span> }
+                        else { <span class="pill pill-ok">On time</span> }
+                    </td>
+                    <td class="num">@(fine > 0 ? fine.ToString("C") : "—")</td>
+                </tr>
+            }
+        </table>
+        <p class="report-meta">Return items at the circulation desk. Overdue fines are charged when the item is returned.</p>
+    }
+</section>
+
+@if (pickups.Count > 0)
+{
+    <section class="report-section">
+        <h2>Ready for pickup (@pickups.Count)</h2>
+        <p class="report-meta">Set aside for you at the circulation desk. Your loan starts when you pick it up.</p>
+        <table class="results">
+            <tr><th>Item</th><th>Requested</th><th>Pick up by</th><th class="num"></th></tr>
+            @foreach (var h in pickups)
+            {
+                <tr>
+                    <td><strong>@Name(h.ItemId!.Value)</strong></td>
+                    <td>@h.RequestDatetime.ToString("MMM d")</td>
+                    <td>@(h.PickupDeadline?.ToString("dddd, MMM d") ?? "—")</td>
+                    <td class="num"><a asp-page="/Borrow" asp-route-ItemId="@h.ItemId">Details</a></td>
+                </tr>
+            }
+        </table>
+    </section>
+}
+
+@if (myHolds.Count > 0)
+{
+    <section class="report-section">
+        <h2>My holds (@myHolds.Count)</h2>
+        <p class="report-meta">When a copy comes back, it's set aside for the next person in line and moves to Ready for pickup.</p>
+        <table class="results">
+            <tr><th>Title</th><th>Placed</th><th>Place in line</th><th class="num"></th></tr>
+            @foreach (var h in myHolds)
+            {
+                <tr>
+                    <td><strong>@Name(h.ItemId!.Value)</strong></td>
+                    <td>@h.RequestDatetime.ToString("MMM d")</td>
+                    <td>#@PlaceInLine(h)</td>
+                    <td class="num"><a asp-page="/Borrow" asp-route-ItemId="@h.ItemId">Details</a></td>
+                </tr>
+            }
+        </table>
+    </section>
+}
+
+<section class="report-section">
+    <h2>My reading list</h2>
+    <p>@(savedCount == 0 ? "You haven't saved any titles yet." : $"{savedCount} saved title{(savedCount == 1 ? "" : "s")}.") <a asp-page="/ReadingList">Open my reading list</a></p>
+</section>
+
+<section class="report-section">
+    <h2>Unpaid fines @(unpaidTotal > 0 ? $"({unpaidTotal:C})" : "")</h2>
+    @if (fines.Count == 0)
+    {
+        <p>You have no unpaid fines. <a asp-page="/MyFines">Payment history</a></p>
+    }
+    else
+    {
+        <table class="results">
+            <tr><th>Item</th><th>Type</th><th>Charged</th><th class="num">Amount</th></tr>
+            @foreach (var f in fines)
+            {
+                <tr>
+                    <td>@(rentalItem.TryGetValue(f.RentalId, out var iid) ? Name(iid) : "—")</td>
+                    <td>@f.FineType</td>
+                    <td>@f.DateAssessed.ToString("MMM d, yyyy")</td>
+                    <td class="num">@f.Amount.ToString("C")</td>
+                </tr>
+            }
+        </table>
+        @if (unpaidTotal > Project.Pages.Circulation.FineBlockLimit)
+        {
+            <p class="report-meta"><strong>You can't borrow new items until your balance is @Project.Pages.Circulation.FineBlockLimit.ToString("C") or less.</strong></p>
+        }
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <a class="btn btn-library" asp-page="/MyFines">Pay @unpaidTotal.ToString("C") online</a>
+            <span class="report-meta">Or pay at the circulation desk by cash, card or check.</span>
+        </div>
+    }
+</section>

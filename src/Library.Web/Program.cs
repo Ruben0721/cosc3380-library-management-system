@@ -61,7 +61,25 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage(
         "/EquipmentMaintenance",
         "LibraryStaff");
+
+     
+    options.Conventions.AuthorizePage(
+        "/OverdueRecords",
+        "LibraryStaff");
+
+    options.Conventions.AuthorizePage(
+        "/MaintenanceRecords",
+        "LibraryStaff");
+
+    options.Conventions.AuthorizePage(
+        "/CirculationRecords",
+        "LibraryStaff");
+
+    // Member pages (any signed-in user)
+    options.Conventions.AuthorizePage("/ReadingList");
+    options.Conventions.AuthorizePage("/MyFines");
 });
+
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

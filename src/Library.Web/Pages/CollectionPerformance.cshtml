@@ -6,6 +6,21 @@
     double change = Model.PrevCheckouts == 0 ? 0
         : 100.0 * (Model.TotalCheckouts - Model.PrevCheckouts) / Model.PrevCheckouts;
 
+    // Links to the supporting records: the report's filters plus what a number was counted from
+    Dictionary<string, string> R(params string[] kv)
+    {
+        var d = new Dictionary<string, string>();
+        if (Model.From != null) d["From"] = Model.From.Value.ToString("yyyy-MM-dd");
+        if (Model.To != null) d["To"] = Model.To.Value.ToString("yyyy-MM-dd");
+        if (!string.IsNullOrEmpty(Model.Category)) d["Category"] = Model.Category;
+        for (int i = 0; i + 1 < kv.Length; i += 2)
+        {
+            if (string.IsNullOrEmpty(kv[i + 1])) d.Remove(kv[i]); else d[kv[i]] = kv[i + 1];
+        }
+        return d;
+    }
+    string ValueOf(string label) => Model.Types.Where(t => t.Label == label).Select(t => t.Value).FirstOrDefault() ?? label;
+
     // Message for empty title lists: explain when the demand filter is the reason
     string EmptyMessage(string normal) => string.IsNullOrEmpty(Model.DemandFilter)
         ? normal
@@ -24,8 +39,12 @@
             · @(string.IsNullOrEmpty(Model.DemandFilter) ? "Any demand" : Model.DemandFilter + " demand")
         </p>
     </div>
-    <button type="button" class="btn btn-outline-secondary no-print" onclick="window.print()">Print / Save as PDF</button>
+    <div class="d-flex flex-wrap gap-2 no-print">
+        <a class="btn btn-library-outline" asp-page="/CirculationRecords" asp-all-route-data='R()'>View all records</a>
+        <button type="button" class="btn btn-outline-secondary" onclick="window.print()">Print / Save as PDF</button>
+    </div>
 </div>
+<p class="report-meta no-print" style="margin-top: -8px;">Click any <span class="drill-num">underlined number</span> to see the records it was counted from.</p>
 
 <!-- Filters -->
 <section class="overview no-print">
@@ -68,7 +87,7 @@
 <div class="kpi-grid">
     <div class="kpi">
         <div class="kpi-label">Checkouts</div>
-        <div class="kpi-value">@Model.TotalCheckouts</div>
+        <div class="kpi-value"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "checkouts")'>@Model.TotalCheckouts</a></div>
         <div class="kpi-note">
             @if (Model.PrevCheckouts > 0)
             {
@@ -82,17 +101,17 @@
     </div>
     <div class="kpi">
         <div class="kpi-label">Unique borrowers</div>
-        <div class="kpi-value">@Model.UniqueBorrowers</div>
+        <div class="kpi-value"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "borrowers")'>@Model.UniqueBorrowers</a></div>
         <div class="kpi-note">members who borrowed</div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Utilization</div>
-        <div class="kpi-value">@Model.UtilizationPct.ToString("0")%</div>
+        <div class="kpi-value"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies")'>@Model.UtilizationPct.ToString("0")%</a></div>
         <div class="kpi-note">of copies borrowed at least once</div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Checkouts per copy</div>
-        <div class="kpi-value">@Model.AvgPerItem.ToString("0.00")</div>
+        <div class="kpi-value"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies")'>@Model.AvgPerItem.ToString("0.00")</a></div>
         <div class="kpi-note">
             @if (!string.IsNullOrEmpty(Model.Category))
             {
@@ -106,12 +125,12 @@
     </div>
     <div class="kpi">
         <div class="kpi-label">Collection</div>
-        <div class="kpi-value">@Model.TotalTitles</div>
+        <div class="kpi-value"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies")'>@Model.TotalTitles</a></div>
         <div class="kpi-note">titles · @Model.TotalCopies copies</div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Waiting for items</div>
-        <div class="kpi-value">@Model.TotalWaiting</div>
+        <div class="kpi-value"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "holds", "Waiting", "true")'>@Model.TotalWaiting</a></div>
         <div class="kpi-note">members on a waitlist now</div>
     </div>
 </div>
@@ -142,12 +161,12 @@
             double? catChange = c.PrevCheckouts == 0 ? null : 100.0 * (c.Checkouts - c.PrevCheckouts) / c.PrevCheckouts;
             <tr>
                 <td>@c.Label</td>
-                <td class="num">@c.Items</td>
+                <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies", "Category", c.Category)'>@c.Items</a></td>
                 <td class="num">@c.Available</td>
                 <td class="num">@c.UnderRepair</td>
-                <td class="num">@c.Checkouts</td>
+                <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "checkouts", "Category", c.Category)'>@c.Checkouts</a></td>
                 <td class="num">@c.PerItem.ToString("0.00")</td>
-                <td class="num">@c.NeverPct.ToString("0")%</td>
+                <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies", "Category", c.Category, "Unborrowed", "true")'>@c.NeverPct.ToString("0")%</a></td>
                 <td class="num">@(catChange == null ? "—" : (catChange >= 0 ? "+" : "") + catChange.Value.ToString("0") + "%")</td>
                 <td><strong>@c.Demand</strong></td>
             </tr>
@@ -183,7 +202,7 @@
                 <td>@row.Key</td>
                 @foreach (var m in Model.Months)
                 {
-                    <td class="num">@row.Value[m]</td>
+                    <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "checkouts", "Category", ValueOf(row.Key), "Month", m)'>@row.Value[m]</a></td>
                 }
             </tr>
         }
@@ -191,7 +210,7 @@
             <td>Total</td>
             @foreach (var m in Model.Months)
             {
-                <td class="num">@Model.Trend.Values.Sum(v => v[m])</td>
+                <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "checkouts", "Month", m)'>@Model.Trend.Values.Sum(v => v[m])</a></td>
             }
         </tr>
     </table>
@@ -213,10 +232,10 @@
                 {
                     <tr>
                         <td><a asp-page="/Search" asp-route-SearchTerm="@t.Title">@t.Title</a><br /><small class="text-muted">@t.Category · @t.Demand</small></td>
-                        <td class="num">@t.Copies</td>
-                        <td class="num">@t.Checkouts</td>
+                        <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies", "Category", ValueOf(t.Category), "Title", t.Title)'>@t.Copies</a></td>
+                        <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "checkouts", "Category", ValueOf(t.Category), "Title", t.Title)'>@t.Checkouts</a></td>
                         <td class="num">@t.PerCopy.ToString("0.0")</td>
-                        <td class="num">@t.Waiting</td>
+                        <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "holds", "Waiting", "true", "Category", ValueOf(t.Category), "Title", t.Title)'>@t.Waiting</a></td>
                     </tr>
                 }
             </table>
@@ -237,10 +256,10 @@
                 {
                     <tr>
                         <td><a asp-page="/Search" asp-route-SearchTerm="@t.Title">@t.Title</a><br /><small class="text-muted">@t.Category</small></td>
-                        <td class="num">@t.Copies</td>
+                        <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies", "Category", ValueOf(t.Category), "Title", t.Title)'>@t.Copies</a></td>
                         <td class="num">@t.Available</td>
-                        <td class="num">@t.HoldsInPeriod</td>
-                        <td class="num">@t.Waiting</td>
+                        <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "holds", "InPeriod", "true", "Category", ValueOf(t.Category), "Title", t.Title)'>@t.HoldsInPeriod</a></td>
+                        <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "holds", "Waiting", "true", "Category", ValueOf(t.Category), "Title", t.Title)'>@t.Waiting</a></td>
                     </tr>
                 }
             </table>
@@ -264,8 +283,8 @@
                 {
                     <tr>
                         <td><a asp-page="/Search" asp-route-SearchTerm="@t.Title">@t.Title</a><br /><small class="text-muted">@t.Category · @t.Demand</small></td>
-                        <td class="num">@t.Copies</td>
-                        <td class="num">@t.Checkouts</td>
+                        <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies", "Category", ValueOf(t.Category), "Title", t.Title)'>@t.Copies</a></td>
+                        <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "checkouts", "Category", ValueOf(t.Category), "Title", t.Title)'>@t.Checkouts</a></td>
                         <td class="num">@t.PerCopy.ToString("0.0")</td>
                     </tr>
                 }
@@ -288,7 +307,7 @@
                     <tr>
                         <td><a asp-page="/Search" asp-route-SearchTerm="@t.Title">@t.Title</a></td>
                         <td>@t.Category</td>
-                        <td class="num">@t.Copies</td>
+                        <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies", "Category", ValueOf(t.Category), "Title", t.Title)'>@t.Copies</a></td>
                         <td class="num">@t.Available</td>
                     </tr>
                 }

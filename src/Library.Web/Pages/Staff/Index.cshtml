@@ -6,183 +6,75 @@
     string greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
-<!-- Header -->
-<div class="report-header">
-    <div>
-        <p class="eyebrow">@DateTime.Today.ToString("dddd, MMMM d, yyyy")</p>
-        <h1>@greeting</h1>
-        <p class="report-lede">Here is what needs attention in the library today.</p>
+<div class="staff-layout">
+
+    <!-- Left menu: every staff page, grouped -->
+    <aside class="staff-menu" aria-label="Staff menu">
+        <p class="staff-menu-title">Circulation</p>
+        <a asp-page="/Staff/StartCheckout">Check out</a>
+        <a asp-page="/Staff/Returns">Return</a>
+        <a asp-page="/Staff/Pickups">Pickups</a>
+        <a asp-page="/CheckoutActivity">Checkout activity</a>
+
+        <p class="staff-menu-title">Fines &amp; equipment</p>
+        <a asp-page="/Staff/Fines">Fines &amp; payments</a>
+        <a asp-page="/Staff/Maintenance">Maintenance</a>
+
+        <p class="staff-menu-title">Members</p>
+        <a asp-page="/Staff/Users">Manage users</a>
+        <a asp-page="/Staff/Directory">Staff &amp; faculty</a>
+
+        <p class="staff-menu-title">Collection</p>
+        <a asp-page="/Inventory">Inventory</a>
+        <a asp-page="/AddInventoryItem">Add an item</a>
+
+        <p class="staff-menu-title">Reports</p>
+        <a asp-page="/CollectionPerformance">Circulation &amp; collection</a>
+        <a asp-page="/OverdueFines">Overdue returns &amp; fines</a>
+        <a asp-page="/EquipmentMaintenance">Equipment maintenance</a>
+    </aside>
+
+    <div class="staff-main">
+        <div class="report-header">
+            <div>
+                <p class="eyebrow">@DateTime.Today.ToString("dddd, MMMM d")</p>
+                <h1>@greeting</h1>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-library" asp-page="/Staff/StartCheckout">Check out</a>
+                <a class="btn btn-library" asp-page="/Staff/Returns">Return an item</a>
+                <a class="btn btn-library-outline" asp-page="/Staff/Fines">Take a payment</a>
+            </div>
+        </div>
+
+        <h2 class="dash-heading">Needs attention</h2>
+        <div class="attention-grid">
+            <a class="attention @(Model.OverdueNow > 0 ? "attention-warn" : "")" asp-page="/Staff/Returns" asp-route-OverdueOnly="true">
+                <span class="attention-value">@Model.OverdueNow</span>
+                <span class="attention-label">overdue item@(Model.OverdueNow == 1 ? "" : "s")</span>
+                <span class="attention-note">
+                    @(Model.OverdueNow > 0 ? $"{Model.OverdueAccruing:C} in fines accruing" : "Nothing overdue")
+                    @(Model.DueToday > 0 ? $" · {Model.DueToday} due today" : "")
+                </span>
+            </a>
+
+            <a class="attention @(Model.PickupsWaiting > 0 ? "attention-warn" : "")" asp-page="/Staff/Pickups">
+                <span class="attention-value">@Model.PickupsWaiting</span>
+                <span class="attention-label">pickup@(Model.PickupsWaiting == 1 ? "" : "s") waiting</span>
+                <span class="attention-note">@(Model.PickupsWaiting > 0 ? "Requested online, ready to hand out" : "No checkout requests")</span>
+            </a>
+
+            <a class="attention @(Model.OpenRepairs > 0 ? "attention-warn" : "")" asp-page="/Staff/Maintenance">
+                <span class="attention-value">@Model.OpenRepairs</span>
+                <span class="attention-label">open repair@(Model.OpenRepairs == 1 ? "" : "s")</span>
+                <span class="attention-note">@(Model.OpenRepairs > 0 ? $"Oldest open {Model.OldestRepairDays} days" : "All equipment in service")</span>
+            </a>
+
+            <a class="attention" asp-page="/Staff/Fines">
+                <span class="attention-value">@Model.UnpaidTotal.ToString("C")</span>
+                <span class="attention-label">unpaid fines</span>
+                <span class="attention-note">@(Model.UnpaidMembers > 0 ? $"Owed by {Model.UnpaidMembers} member{(Model.UnpaidMembers == 1 ? "" : "s")}" : "All fines paid")</span>
+            </a>
+        </div>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-        <a class="btn btn-library" asp-page="/Staff/StartCheckout">Check out</a>
-        <a class="btn btn-library" asp-page="/Staff/Returns">Return an item</a>
-        <a class="btn btn-library-outline" asp-page="/Staff/Fines">Take a payment</a>
-    </div>
-</div>
-
-<!-- Today at a glance -->
-<h2 class="dash-heading">Today at a glance</h2>
-<div class="kpi-grid">
-    <a class="kpi kpi-link" asp-page="/Staff/Returns" asp-route-OverdueOnly="true">
-        <div class="kpi-label">Overdue now</div>
-        <div class="kpi-value">@Model.OverdueNow</div>
-        <div class="kpi-note">
-            @if (Model.OverdueNow > 0)
-            {
-                <span class="pill pill-warn">Needs follow-up</span>
-                <span class="d-block mt-1"><strong>@Model.OverdueAccruing.ToString("C")</strong> in fines accruing</span>
-            }
-            else
-            {
-                <span>Nothing overdue</span>
-            }
-        </div>
-    </a>
-
-    <a class="kpi kpi-link" asp-page="/Staff/Returns">
-        <div class="kpi-label">Checked out</div>
-        <div class="kpi-value">@Model.CheckedOut</div>
-        <div class="kpi-note">@Model.DueToday due back today</div>
-    </a>
-
-    <a class="kpi kpi-link" asp-page="/Staff/Fines">
-        <div class="kpi-label">Unpaid fines</div>
-        <div class="kpi-value">@Model.UnpaidTotal.ToString("C")</div>
-        <div class="kpi-note">owed by @Model.UnpaidMembers member@(Model.UnpaidMembers == 1 ? "" : "s")</div>
-    </a>
-
-    <a class="kpi kpi-link" asp-page="/Staff/Maintenance">
-        <div class="kpi-label">Open repairs</div>
-        <div class="kpi-value">@Model.OpenRepairs</div>
-        <div class="kpi-note">
-            @if (Model.OpenRepairs > 0)
-            {
-                <span>oldest <strong>@Model.OldestRepairDays days</strong> · @Model.OutOfService out of service</span>
-            }
-            else
-            {
-                <span>@Model.OutOfService items out of service</span>
-            }
-        </div>
-    </a>
-
-    <a class="kpi kpi-link" asp-page="/Staff/RoomSetupTasks">
-        <div class="kpi-label">Room setup</div>
-        <div class="kpi-value">@Model.OpenRoomSetupTasks</div>
-        <div class="kpi-note">
-            @if (Model.RoomSetupTasks.Count > 0)
-            {
-                <span>next: <strong>@Model.RoomSetupTasks[0].RoomId</strong> on @Model.RoomSetupTasks[0].StartTime.ToString("MMM d")</span>
-            }
-            else
-            {
-                <span>No rooms waiting for setup</span>
-            }
-        </div>
-    </a>
-
-    <div class="kpi">
-        <div class="kpi-label">Holds</div>
-        <div class="kpi-value">@Model.HoldsWaiting</div>
-        <div class="kpi-note">members waiting · <strong>@Model.HoldsReady</strong> ready for pickup</div>
-    </div>
-
-    <a class="kpi kpi-link" asp-page="/Staff/Users">
-        <div class="kpi-label">Active members</div>
-        <div class="kpi-value">@Model.ActiveMembers</div>
-        <div class="kpi-note">@Model.MembersWithoutLogin without a website login</div>
-    </a>
-</div>
-
-<!-- Work areas -->
-<h2 class="dash-heading">Work areas</h2>
-<div class="dash-grid">
-    <section class="dash-card">
-        <h3>Circulation</h3>
-        <p>Lend and check in items.</p>
-        <div class="dash-links" role="navigation" aria-label="Circulation">
-            <a asp-page="/Staff/StartCheckout">Check out an item</a>
-            <a asp-page="/Staff/Returns">Return an item</a>
-            <a asp-page="/CheckoutActivity">Checkout activity</a>
-        </div>
-    </section>
-
-    <section class="dash-card">
-        <h3>Fines &amp; equipment</h3>
-        <p>Collect payments and handle repairs.</p>
-        <div class="dash-links" role="navigation" aria-label="Fines and equipment">
-            <a asp-page="/Staff/Fines">Fines &amp; payments</a>
-            <a asp-page="/Staff/Maintenance">Maintenance requests</a>
-        </div>
-    </section>
-
-    <section class="dash-card">
-        <h3>Collection</h3>
-        <p>Manage the library's items.</p>
-        <div class="dash-links" role="navigation" aria-label="Collection">
-            <a asp-page="/Inventory">View inventory</a>
-            <a asp-page="/AddInventoryItem">Add an item</a>
-        </div>
-    </section>
-
-    <section class="dash-card">
-        <h3>Members</h3>
-        <p>Borrowers, staff and faculty.</p>
-        <div class="dash-links" role="navigation" aria-label="Members">
-            <a asp-page="/Staff/Users">Manage users</a>
-            <a asp-page="/Staff/Directory">Staff &amp; faculty directory</a>
-        </div>
-    </section>
-
-    <section class="dash-card">
-        <h3>Reports</h3>
-        <p>Analysis to support decisions.</p>
-        <div class="dash-links" role="navigation" aria-label="Reports">
-            <a asp-page="/CollectionPerformance">Circulation &amp; collection performance</a>
-            <a asp-page="/OverdueFines">Overdue returns &amp; fines</a>
-            <a asp-page="/EquipmentMaintenance">Equipment maintenance</a>
-        </div>
-    </section>
-</div>
-
-<!-- Recent activity -->
-<h2 class="dash-heading">Recent activity</h2>
-<div class="report-grid-2">
-    <section class="report-section">
-        <table class="results">
-            <tr><th>Latest returns</th><th>Borrower</th><th>Condition</th><th class="num">When</th></tr>
-            @if (Model.RecentReturns.Count == 0)
-            {
-                <tr><td colspan="4">No returns yet.</td></tr>
-            }
-            @foreach (var r in Model.RecentReturns)
-            {
-                <tr>
-                    <td>@r.Item</td>
-                    <td>@r.Borrower</td>
-                    <td><span class="pill @(r.Condition == "Good" ? "pill-ok" : "pill-warn")">@r.Condition</span></td>
-                    <td class="num">@r.ReturnedAt.ToString("MMM d")</td>
-                </tr>
-            }
-        </table>
-    </section>
-
-    <section class="report-section">
-        <table class="results">
-            <tr><th>Latest payments</th><th>Method</th><th class="num">Amount</th><th class="num">When</th></tr>
-            @if (Model.RecentPayments.Count == 0)
-            {
-                <tr><td colspan="4">No payments yet.</td></tr>
-            }
-            @foreach (var p in Model.RecentPayments)
-            {
-                <tr>
-                    <td>@p.Member</td>
-                    <td>@(p.Method.Length > 0 ? char.ToUpper(p.Method[0]) + p.Method[1..] : p.Method)</td>
-                    <td class="num">@p.Amount.ToString("C")</td>
-                    <td class="num">@p.PaidAt.ToString("MMM d")</td>
-                </tr>
-            }
-        </table>
-    </section>
 </div>

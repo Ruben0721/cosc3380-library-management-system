@@ -1,0 +1,120 @@
+@page
+@model Project.Pages.BorrowModel
+@{
+    ViewData["Title"] = Model.ItemName;
+}
+
+<div class="report-header">
+    <div>
+        <p class="eyebrow">@Model.CategoryLabel</p>
+        <h1>@Model.ItemName</h1>
+        <p class="report-meta">
+            @if (Model.CopiesAvailable > 0)
+            {
+                <span class="pill pill-ok">Available</span>
+                <span>@Model.CopiesAvailable of @Model.Copies @(Model.Copies == 1 ? "copy" : "copies") on the shelf</span>
+            }
+            else
+            {
+                <span class="pill pill-off">All copies out</span>
+                <span>
+                    @(Model.NextDue != null ? $"Next copy due back {Model.NextDue:MMM d}" : "Not available right now")
+                    @(Model.InLine > 0 ? $" · {Model.InLine} {(Model.InLine == 1 ? "person" : "people")} waiting" : "")
+                </span>
+            }
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-secondary" asp-page="/ReadingList">My reading list</a>
+        <a class="btn btn-outline-secondary" asp-page="/Account/MyLibrary">My library account</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="status">
+        @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<section class="borrow-box">
+    @if (Model.MyLoanDue != null)
+    {
+        <h2>You have this checked out</h2>
+        <p>It's due back on <strong>@Model.MyLoanDue.Value.ToString("dddd, MMMM d")</strong>. Return it at the circulation desk.</p>
+    }
+    else if (Model.MyPickupBy != null)
+    {
+        <h2>Ready for you at the desk</h2>
+        <p>A copy is set aside for you. Pick it up at the circulation desk by <strong>@Model.MyPickupBy.Value.ToString("dddd, MMMM d")</strong>. Your @Model.LoanDays-day loan starts at pickup.</p>
+        <form method="post" asp-page-handler="Cancel" asp-route-ItemId="@Model.ItemId" class="d-inline">
+            <button type="submit" class="btn btn-library-outline">Cancel request</button>
+        </form>
+    }
+    else if (Model.MyPlaceInLine != null)
+    {
+        <h2>You're #@Model.MyPlaceInLine in line</h2>
+        <p>When a copy comes back, it's set aside for the next person in line automatically. You'll see it under <em>Ready for pickup</em> in your account and have @Project.Pages.Circulation.PickupDays days to collect it.</p>
+        <form method="post" asp-page-handler="Cancel" asp-route-ItemId="@Model.ItemId" class="d-inline">
+            <button type="submit" class="btn btn-library-outline">Cancel hold</button>
+        </form>
+    }
+    else if (Model.Blocked != null)
+    {
+        <h2>@(Model.CopiesAvailable > 0 ? "Request checkout" : "Place a hold")</h2>
+        <p><strong>@Model.Blocked</strong></p>
+        @if (Model.MemberId == null)
+        {
+            <a class="btn btn-library" asp-page="/Account/Login" asp-route-ReturnUrl="@($"/Borrow?ItemId={Model.ItemId}")">Sign in</a>
+        }
+        else if (Model.BlockedByFines)
+        {
+            <a class="btn btn-library" asp-page="/MyFines">Pay fines online</a>
+        }
+    }
+    else if (Model.CanRequest)
+    {
+        <h2>Request checkout</h2>
+        <p>Library staff will set a copy aside for you at the circulation desk. Pick it up within @Project.Pages.Circulation.PickupDays days; your @Model.LoanDays-day loan starts when you pick it up.</p>
+        <form method="post" asp-page-handler="@(Model.NeedsPickup ? "Request" : "Borrow")" asp-route-ItemId="@Model.ItemId" class="d-inline">
+            <button type="submit" class="btn btn-library">@(Model.NeedsPickup ? "Place checkout request" : "Borrow now")</button>
+        </form>
+    }
+    else if (Model.CanHold)
+    {
+        <h2>Place a hold</h2>
+        <p>
+            Every copy is checked out. Join the line and the next copy that comes back is set aside for you.
+            @(Model.InLine == 0 ? "You'd be first in line." : $"You'd be #{Model.InLine + 1} in line.")
+        </p>
+        <form method="post" asp-page-handler="Hold" asp-route-ItemId="@Model.ItemId" class="d-inline">
+            <button type="submit" class="btn btn-library">Place hold</button>
+        </form>
+    }
+    else if (Model.AtHoldLimit)
+    {
+        <h2>Place a hold</h2>
+        <p><strong>You have @Model.HoldLimit holds, your limit.</strong> Cancel one from your account to place another.</p>
+    }
+
+    @if (Model.MemberId != null)
+    {
+        <form method="post" asp-page-handler="@(Model.InReadingList ? "Unsave" : "Save")" asp-route-ItemId="@Model.ItemId" class="d-inline">
+            <button type="submit" class="btn btn-outline-secondary">
+                @(Model.InReadingList ? "✓ On your reading list" : "Save to reading list")
+            </button>
+        </form>
+    }
+</section>
+
+<p class="report-meta">
+    Borrowing limits: students 5 items, faculty 10. Members with more than @Project.Pages.Circulation.FineBlockLimit.ToString("C") in unpaid fines must pay at the desk first.
+</p>

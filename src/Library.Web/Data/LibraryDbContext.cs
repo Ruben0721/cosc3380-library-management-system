@@ -26,6 +26,7 @@ namespace Project.Data
         public DbSet<Room> Rooms => Set<Room>();
         public DbSet<RoomReservation> RoomReservations => Set<RoomReservation>();
         public DbSet<RoomSetupTask> RoomSetupTasks => Set<RoomSetupTask>();
+        public DbSet<ReadingListItem> ReadingList => Set<ReadingListItem>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

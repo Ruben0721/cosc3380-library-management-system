@@ -183,7 +183,7 @@ else
                                             </button>
                                         </form>
                                     }
-
+                                    
                                     <form method="post" asp-page-handler="SetBorrowerStatus">
                                         <input type="hidden" name="libraryUserId" value="@b.LibraryUserId" />
                                         <input type="hidden" name="isActive" value="@(b.BorrowerIsActive ? "false" : "true")" />

@@ -1,0 +1,123 @@
+@* Pops up once per sign-in for students and faculty who have items ready for pickup or unpaid fines.
+   Add to Pages/Shared/_Layout.cshtml just before </body>, after the Bootstrap script:
+       <partial name="_LoginNotice" />                                              *@
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.EntityFrameworkCore
+@inject Project.Data.LibraryDbContext Db
+@{
+    int? memberId = int.TryParse(User.FindFirst("library_user_id")?.Value, out var mid) ? mid : null;
+    string path = Context.Request.Path.Value ?? "";
+    bool skip = memberId == null || path.StartsWith("/Account/Log", StringComparison.OrdinalIgnoreCase);
+
+    var now = DateTime.Now;
+    var pickups = new List<(string Title, DateTime? By)>();
+    decimal balance = 0;
+    int fineCount = 0;
+
+    if (!skip)
+    {
+        var ready = await Db.Holds.AsNoTracking()
+            .Where(h => h.LibraryUserId == memberId && h.Status == "Ready" && h.ItemId != null
+                        && (h.PickupDeadline == null || h.PickupDeadline > now))
+            .OrderBy(h => h.PickupDeadline)
+            .Select(h => new { h.ItemId, h.PickupDeadline })
+            .ToListAsync();
+        if (ready.Count > 0)
+        {
+            var ids = ready.Select(r => r.ItemId!.Value).ToList();
+            var titles = await Db.Inventory.AsNoTracking()
+                .Where(i => ids.Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id, i => i.Name);
+            pickups = ready.Select(r => (titles.GetValueOrDefault(r.ItemId!.Value) ?? "Item", r.PickupDeadline)).ToList();
+        }
+
+        var unpaid = await Db.Fines.AsNoTracking()
+            .Where(f => f.LibraryUserId == memberId && !f.IsPaid)
+            .Select(f => f.Amount)
+            .ToListAsync();
+        fineCount = unpaid.Count;
+        balance = unpaid.Sum();
+    }
+
+    bool show = pickups.Count > 0 || fineCount > 0;
+
+    // Each sign-in gets a new cookie issue time, so the notice shows once per sign-in
+    string signInKey = "";
+    if (show)
+    {
+        var auth = await Context.AuthenticateAsync();
+        signInKey = $"{memberId}-{auth.Properties?.IssuedUtc?.UtcTicks ?? DateTime.UtcNow.Date.Ticks}";
+    }
+    bool blocked = balance > Project.Pages.Circulation.FineBlockLimit;
+}
+@if (show)
+{
+    <div class="modal fade" id="loginNotice" tabindex="-1" aria-labelledby="loginNoticeTitle" aria-hidden="true" data-key="@signInKey">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="loginNoticeTitle">Welcome back</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (pickups.Count > 0)
+                    {
+                        <div class="notice-block">
+                            <h3 class="notice-heading">Ready for pickup at the circulation desk</h3>
+                            <ul class="notice-list">
+                                @foreach (var p in pickups)
+                                {
+                                    bool lastDay = p.By != null && p.By.Value.Date == now.Date;
+                                    <li>
+                                        <strong>@p.Title</strong>
+                                        <span class="@(lastDay ? "notice-urgent" : "notice-muted")">
+                                            @(p.By == null ? "" : lastDay ? "· last day, pick up today" : $"· pick up by {p.By:ddd, MMM d}")
+                                        </span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    @if (fineCount > 0)
+                    {
+                        <div class="notice-block">
+                            <h3 class="notice-heading">Unpaid fines</h3>
+                            <p class="notice-amount">@balance.ToString("C")</p>
+                            <p class="mb-0">
+                                @fineCount unpaid fine@(fineCount == 1 ? "" : "s").
+                                @if (blocked)
+                                {
+                                    <strong>You can't request or hold items until your balance is @Project.Pages.Circulation.FineBlockLimit.ToString("C") or less.</strong>
+                                }
+                                else
+                                {
+                                    <span>Pay online now or at the circulation desk.</span>
+                                }
+                            </p>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Later</button>
+                    @if (pickups.Count > 0)
+                    {
+                        <a class="btn @(fineCount > 0 ? "btn-library-outline" : "btn-library")" asp-page="/Account/MyLibrary">View my account</a>
+                    }
+                    @if (fineCount > 0)
+                    {
+                        <a class="btn btn-library" asp-page="/MyFines">Pay fines</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var el = document.getElementById('loginNotice');
+            if (!el || typeof bootstrap === 'undefined') return;
+            var key = 'loginNotice:' + el.dataset.key;
+            try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch (e) { }
+            new bootstrap.Modal(el).show();
+        });
+    </script>
+}

@@ -12,14 +12,14 @@ namespace Project.Pages
                                    int RequestsOpened, int StillOpen, double? AvgDaysToResolve, decimal DamageFees);
 
     public record MaintOpenRow(int RequestId, string? ItemName, string Category, string RequestType, string? Reason,
-                               string Status, DateTime CreatedAt, int DaysOpen, string ItemStatus, string? LastBorrower);
+                               string Status, DateTime CreatedAt, int DaysOpen, string ItemStatus, string? LastBorrower, int ItemId);
 
     public record MaintItemRow(int ItemId, string? ItemName, string Category, string ItemStatus, int Loans,
                                int DamageRepairs180, int DamageRepairsTotal, double DamageRate,
                                decimal FeesAssessed, decimal? ReplacementCost, string Recommendation, string Why);
 
     public record MaintInspectionRow(string? ItemName, string Category, int Every, int ReturnsSinceLast,
-                                     int ReturnsUntilNext, DateTime? LastInspection, string ItemStatus);
+                                     int ReturnsUntilNext, DateTime? LastInspection, string ItemStatus, int ItemId);
 
     public record MaintMonthRow(string Month, int DamageRepairs, int Inspections, int ReplacementReviews, int Resolved);
 
@@ -28,7 +28,7 @@ namespace Project.Pages
         private readonly LibraryDbContext _db;
         public EquipmentMaintenanceModel(LibraryDbContext db) => _db = db;
 
-
+        // ----- Filters -----
         [BindProperty(SupportsGet = true)] public DateTime? From { get; set; }
         [BindProperty(SupportsGet = true)] public DateTime? To { get; set; }
         [BindProperty(SupportsGet = true)] public string? Category { get; set; }
@@ -37,7 +37,7 @@ namespace Project.Pages
         public static readonly string[] RequestTypes = { "Damage Repair", "Routine Inspection", "Replacement Review" };
         private static readonly string[] OpenStatuses = { "Open", "In Progress" };
 
-
+        // ----- Summary -----
         public int ItemsTracked { get; set; }
         public int OutOfServiceNow { get; set; }
         public int RequestsOpened { get; set; }
@@ -54,7 +54,7 @@ namespace Project.Pages
         public DateTime PrevTo { get; set; }
         public Dictionary<string, int> OpenedByType { get; set; } = new();
 
-
+        // ----- Sections -----
         public List<MaintCategoryRow> ByCategory { get; set; } = new();
         public List<MaintOpenRow> OpenQueue { get; set; } = new();
         public List<MaintItemRow> ItemReliability { get; set; } = new();
@@ -73,7 +73,7 @@ namespace Project.Pages
             PrevFrom = start - length;
             PrevTo = start.AddDays(-1);
 
-
+            // ---- Load data ----
             var items = await _db.Inventory.AsNoTracking()
                 .Select(i => new { i.Id, i.Name, i.Type, i.Status })
                 .ToDictionaryAsync(i => i.Id);
@@ -94,7 +94,7 @@ namespace Project.Pages
                 .Where(m => items.ContainsKey(m.ItemId))
                 .ToList();
 
-       
+            // Damage / lost fines, linked to the item through the rental
             var damageFines = (await _db.Fines.AsNoTracking()
                     .Where(f => f.FineType == "Damaged" || f.FineType == "Lost")
                     .ToListAsync())
@@ -114,6 +114,7 @@ namespace Project.Pages
             var resolved = requests.Where(m => m.ResolvedAt >= start && m.ResolvedAt < end).ToList();
             var openNow = requests.Where(m => OpenStatuses.Contains(m.Status)).ToList();
 
+            // Damaged returns are counted from Damage Repair requests (one per damaged return)
             var damageInPeriod = allRequests.Where(m => InCategory(m.ItemId) && m.RequestType == "Damage Repair"
                                                      && m.CreatedAt >= start && m.CreatedAt < end).ToList();
             var returns = rentals.Where(r => InCategory(r.ItemId)
@@ -136,7 +137,7 @@ namespace Project.Pages
                                     .Sum(f => f.Amount);
             OpenedByType = RequestTypes.ToDictionary(t => t, t => opened.Count(m => m.RequestType == t));
 
-            // By category
+            // ---- By category ----
             ByCategory = catItems
                 .GroupBy(i => i.Type)
                 .Select(g =>
@@ -158,7 +159,7 @@ namespace Project.Pages
                 .OrderByDescending(c => c.DamageRate).ThenByDescending(c => c.RequestsOpened)
                 .ToList();
 
-            //Open work queue 
+            // ---- Open work queue (all open requests, oldest first) ----
             OpenQueue = openNow
                 .Select(m =>
                 {
@@ -166,13 +167,13 @@ namespace Project.Pages
                     string? borrower = m.RentalId != null && rentalById.TryGetValue(m.RentalId.Value, out var r)
                         ? names.GetValueOrDefault(r.LibraryUserId) : null;
                     return new MaintOpenRow(m.RequestId, it.Name, LabelOf(it.Type), m.RequestType, m.Reason,
-                        m.Status, m.CreatedAt, (now - m.CreatedAt).Days, it.Status ?? "", borrower);
+                        m.Status, m.CreatedAt, (now - m.CreatedAt).Days, it.Status ?? "", borrower, m.ItemId);
                 })
                 .OrderBy(o => o.RequestType == "Replacement Review" ? 0 : o.RequestType == "Damage Repair" ? 1 : 2)
                 .ThenByDescending(o => o.DaysOpen)
                 .ToList();
 
-            // items with any damage repair 
+            // ---- Item reliability: items with any damage repair ----
             var since180 = end.AddDays(-180);
             ItemReliability = allRequests
                 .Where(m => m.RequestType == "Damage Repair" && InCategory(m.ItemId))
@@ -207,7 +208,7 @@ namespace Project.Pages
                 .ThenByDescending(r => r.DamageRepairs180)
                 .ToList();
 
-            // Routine inspection schedule 
+            // ---- Routine inspection schedule (categories with an inspection interval) ----
             foreach (var it in catItems)
             {
                 if (!policies.TryGetValue(it.Type, out var p) || p.InspectionEvery is not int every || every <= 0) continue;
@@ -220,11 +221,11 @@ namespace Project.Pages
                                                 && (lastInspection == null || r.ReturnedDate > lastInspection));
                 int untilNext = Math.Max(every - sinceLast, 0);
                 Inspections.Add(new MaintInspectionRow(it.Name, LabelOf(it.Type), every, sinceLast, untilNext,
-                    lastInspection, it.Status ?? ""));
+                    lastInspection, it.Status ?? "", it.Id));
             }
             Inspections = Inspections.OrderBy(i => i.ReturnsUntilNext).ThenBy(i => i.ItemName).ToList();
 
-            // Monthly trend 
+            // ---- Monthly trend ----
             for (var m = new DateTime(start.Year, start.Month, 1); m < end; m = m.AddMonths(1))
             {
                 bool InMonth(DateTime? d) => d != null && d.Value.Year == m.Year && d.Value.Month == m.Month;
@@ -254,29 +255,29 @@ namespace Project.Pages
                 Recommendations.Add($"Watch {string.Join(", ", monitor.Select(r => r.ItemName))}: one more damage repair " +
                                     "within 180 days will trigger a replacement review.");
 
-          
+            // Categories damaged much more often than average
             foreach (var c in ByCategory.Where(c => c.Damaged >= 2 && DamageRate > 0 && c.DamageRate >= DamageRate * 1.5))
                 Recommendations.Add($"{c.Category}: {c.DamageRate:0}% of returns came back damaged vs. {DamageRate:0}% overall. " +
                                     "Inspect at checkout, add protective cases, or raise the damage fee.");
 
-          
+            // Low availability because of repairs
             foreach (var c in ByCategory.Where(c => c.OutOfService > 0 && c.AvailabilityPct < 80))
                 Recommendations.Add($"{c.Category}: only {c.AvailabilityPct:0}% of copies are in service ({c.OutOfService} of {c.Items} out). " +
                                     "Prioritize these repairs or add a spare unit.");
 
-          
+            // Slow repairs / stale tickets
             int stale = OpenQueue.Count(o => o.DaysOpen > 14);
             if (stale > 0)
                 Recommendations.Add($"{stale} maintenance request(s) have been open more than 14 days (oldest {OldestOpenDays} days).");
             if (AvgDaysToResolve > 7)
                 Recommendations.Add($"Requests took {AvgDaysToResolve:0.0} days on average to resolve. Aim for under a week.");
 
-          
+            // Inspections coming up
             int dueSoon = Inspections.Count(i => i.ReturnsUntilNext <= 2);
             if (dueSoon > 0)
                 Recommendations.Add($"{dueSoon} item(s) are within 2 returns of their next routine inspection.");
 
-            
+            // Trend
             if (PrevRequestsOpened > 0 && RequestsOpened >= PrevRequestsOpened * 1.5 && RequestsOpened - PrevRequestsOpened >= 2)
                 Recommendations.Add($"Maintenance requests rose from {PrevRequestsOpened} to {RequestsOpened} vs. the previous period.");
 

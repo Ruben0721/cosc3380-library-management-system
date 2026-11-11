@@ -1,0 +1,171 @@
+@page
+@model Project.Pages.MyFinesModel
+@{
+    ViewData["Title"] = "Pay my fines";
+}
+
+<div class="report-header">
+    <div>
+        <p class="eyebrow">My library</p>
+        <h1>Fines &amp; payments</h1>
+        <p class="report-lede">Pay your library fines online. Paid fines are cleared right away.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-secondary" asp-page="/Account/MyLibrary">My library account</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="status">
+        <strong>Payment complete.</strong> @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Payment not made.</strong> @Model.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!Model.SignedIn)
+{
+    <p>Sign in with a student or faculty account to see and pay your fines.</p>
+    <a class="btn btn-library" asp-page="/Account/Login" asp-route-ReturnUrl="/MyFines">Sign in</a>
+    return;
+}
+
+<section class="kpi-grid">
+    <div class="kpi">
+        <div class="kpi-label">Balance due</div>
+        <div class="kpi-value">@Model.Balance.ToString("C")</div>
+        <div class="kpi-note">@Model.Unpaid.Count unpaid fine@(Model.Unpaid.Count == 1 ? "" : "s")</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Borrowing</div>
+        <div class="kpi-value">@(Model.Balance > Project.Pages.Circulation.FineBlockLimit ? "On hold" : "OK")</div>
+        <div class="kpi-note">Blocked above @Project.Pages.Circulation.FineBlockLimit.ToString("C") unpaid</div>
+    </div>
+</section>
+
+@if (Model.Unpaid.Count == 0)
+{
+    <section class="report-section">
+        <h2>Unpaid fines</h2>
+        <p>You have no unpaid fines. 🎉</p>
+    </section>
+}
+else
+{
+    <form method="post" asp-page-handler="Pay" id="payForm" autocomplete="off">
+        <section class="report-section">
+            <h2>Unpaid fines</h2>
+            <table class="results">
+                <tr>
+                    <th><input type="checkbox" id="selectAll" checked aria-label="Select all fines" /></th>
+                    <th>Item</th><th>Fine</th><th class="num">Days late</th><th>Charged</th><th class="num">Amount</th>
+                </tr>
+                @foreach (var f in Model.Unpaid)
+                {
+                    <tr>
+                        <td><input type="checkbox" class="js-fine" name="FineIds" value="@f.FineId" data-amount="@f.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)" checked aria-label="Pay fine @f.FineId" /></td>
+                        <td>@(f.ItemName ?? "—")</td>
+                        <td>@f.FineType@(string.IsNullOrEmpty(f.Notes) ? "" : $" · {f.Notes}")</td>
+                        <td class="num">@(f.DaysLate is > 0 ? f.DaysLate.ToString() : "—")</td>
+                        <td>@f.DateAssessed.ToString("MMM d, yyyy")</td>
+                        <td class="num">@f.Amount.ToString("C")</td>
+                    </tr>
+                }
+            </table>
+        </section>
+
+        <section class="report-section pay-card">
+            <h2>Pay by card</h2>
+            <div class="pay-grid">
+                <label class="pay-wide">Name on card
+                    <input class="form-control" name="CardName" required autocomplete="off" />
+                </label>
+                <label class="pay-wide">Card number
+                    <input class="form-control" name="CardNumber" required inputmode="numeric" maxlength="23"
+                           placeholder="1234 5678 9012 3456" autocomplete="off" />
+                </label>
+                <label>Expiry
+                    <input class="form-control" name="CardExpiry" required placeholder="MM/YY" maxlength="5" autocomplete="off" />
+                </label>
+                <label>Security code
+                    <input class="form-control" name="CardCvc" required inputmode="numeric" maxlength="4" autocomplete="off" />
+                </label>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
+                <button type="submit" class="btn btn-library" id="payBtn">Pay <span id="payTotal">@Model.Balance.ToString("C")</span></button>
+                <span class="report-meta">Class project demo: no card is charged and card details are not saved. Test card: 4242 4242 4242 4242.</span>
+            </div>
+        </section>
+    </form>
+}
+
+<section class="report-section">
+    <h2>Payment history</h2>
+    @if (Model.Paid.Count == 0)
+    {
+        <p>No payments yet.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr><th>Receipt</th><th>Date</th><th>Item</th><th>Fine</th><th>Method</th><th class="num">Amount</th></tr>
+            @foreach (var p in Model.Paid)
+            {
+                <tr>
+                    <td>@p.PaymentId</td>
+                    <td>@p.PaymentDate.ToString("MMM d, yyyy")</td>
+                    <td>@(p.ItemName ?? "—")</td>
+                    <td>@p.FineType</td>
+                    <td>@(char.ToUpper(p.Method[0]) + p.Method[1..])</td>
+                    <td class="num">@p.Amount.ToString("C")</td>
+                </tr>
+            }
+        </table>
+    }
+</section>
+
+<script>
+    (function () {
+        var boxes = document.querySelectorAll('.js-fine');
+        var all = document.getElementById('selectAll');
+        var total = document.getElementById('payTotal');
+        var btn = document.getElementById('payBtn');
+        var form = document.getElementById('payForm');
+        if (!form) return;
+        var fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+        function update() {
+            var sum = 0, n = 0;
+            boxes.forEach(function (b) { if (b.checked) { sum += parseFloat(b.dataset.amount); n++; } });
+            total.textContent = fmt.format(sum);
+            btn.disabled = n === 0;
+            all.checked = n === boxes.length;
+        }
+        boxes.forEach(function (b) { b.addEventListener('change', update); });
+        all.addEventListener('change', function () { boxes.forEach(function (b) { b.checked = all.checked; }); update(); });
+
+        // Card number in groups of four, expiry as MM/YY
+        var num = form.querySelector('[name="CardNumber"]');
+        num.addEventListener('input', function () {
+            num.value = num.value.replace(/\D/g, '').slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ');
+        });
+        var exp = form.querySelector('[name="CardExpiry"]');
+        exp.addEventListener('input', function () {
+            var d = exp.value.replace(/\D/g, '').slice(0, 4);
+            exp.value = d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d;
+        });
+
+        form.addEventListener('submit', function () {   // no double payments
+            btn.disabled = true;
+            btn.textContent = 'Processing…';
+        });
+        update();
+    })();
+</script>

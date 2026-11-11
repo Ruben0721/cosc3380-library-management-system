@@ -1,0 +1,44 @@
+@model Project.Pages.RecordTable
+@{
+    const int MaxRows = 500;
+}
+
+@if (Model.Rows.Count == 0)
+{
+    <p>No records match.</p>
+}
+else
+{
+    @if (Model.Rows.Count > MaxRows)
+    {
+        <p class="text-muted">Showing the first @MaxRows of @Model.Rows.Count records. Download the CSV for all of them.</p>
+    }
+    <div class="table-responsive">
+        <table class="results">
+            <tr>
+                @for (int c = 0; c < Model.Headers.Count; c++)
+                {
+                    <th class="@(Model.NumericColumns.Contains(c) ? "num" : "")">@Model.Headers[c]</th>
+                }
+            </tr>
+            @foreach (var row in Model.Rows.Take(MaxRows))
+            {
+                <tr>
+                    @for (int c = 0; c < row.Length; c++)
+                    {
+                        <td class="@(Model.NumericColumns.Contains(c) ? "num" : "")">@row[c]</td>
+                    }
+                </tr>
+            }
+            @if (Model.Totals != null)
+            {
+                <tr class="total">
+                    @for (int c = 0; c < Model.Totals.Length; c++)
+                    {
+                        <td class="@(Model.NumericColumns.Contains(c) ? "num" : "")">@Model.Totals[c]</td>
+                    }
+                </tr>
+            }
+        </table>
+    </div>
+}

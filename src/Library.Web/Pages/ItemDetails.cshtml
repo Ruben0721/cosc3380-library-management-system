@@ -56,4 +56,9 @@
 {
     <p><a class="button button-primary" asp-page="/Checkout" asp-route-itemId="@i.Id">Check out</a></p>
 }
+
+@if (Model.Item != null)
+{
+    <a class="btn btn-library" asp-page="/Borrow" asp-route-ItemId="@Model.Item.Id">Request checkout</a>
+}
 <p><a class="button" href="javascript:history.back()">← Back</a></p>

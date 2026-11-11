@@ -107,6 +107,11 @@ namespace Project.Pages.Staff
                 if (others.Count > 0) extra = $" {others.Count} other open request(s) on this item were closed.";
             }
 
+            // Back in service: offer the copy to the next member waiting for this title
+            string? heldFor = status == "In Progress" ? null
+                : await Project.Pages.Circulation.PromoteNextHoldAsync(_db, request.ItemId);
+            if (heldFor != null) extra += $" Set aside for {heldFor}, next on hold.";
+
             var item = await _db.Inventory.AsNoTracking()
                 .Where(i => i.Id == request.ItemId)
                 .Select(i => new { i.Name, i.Status })

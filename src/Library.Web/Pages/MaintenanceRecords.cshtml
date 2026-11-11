@@ -1,0 +1,43 @@
+@page
+@model Project.Pages.MaintenanceRecordsModel
+@{
+    ViewData["Title"] = "Supporting records – Equipment Maintenance";
+    var from = Model.From?.ToString("yyyy-MM-dd");
+    var to = Model.To?.ToString("yyyy-MM-dd");
+}
+
+<div class="report-header">
+    <div>
+        <p class="eyebrow">Supporting records · Equipment Maintenance</p>
+        <h1>@Model.Table.Title</h1>
+        <p class="report-lede">@Model.Table.Description</p>
+        <p class="report-meta">@string.Join(" · ", Model.Narrowing)</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 no-print">
+        <a class="btn btn-library-outline" asp-page="/MaintenanceRecords" asp-page-handler="Csv" asp-all-route-data="Model.RouteValues()">Download CSV</a>
+        <a class="btn btn-outline-secondary" asp-page="/EquipmentMaintenance" asp-route-From="@from" asp-route-To="@to"
+           asp-route-Category="@Model.Category" asp-route-RequestType="@Model.RequestType">Back to report</a>
+    </div>
+</div>
+
+<div class="records-tabs no-print" role="navigation" aria-label="Record type">
+    <a class="@(Model.Show == "requests" && Model.Scope != "open" && Model.Scope != "resolved" ? "active" : "")" asp-page="/MaintenanceRecords" asp-route-Show="requests"
+       asp-route-From="@from" asp-route-To="@to" asp-route-Category="@Model.Category" asp-route-RequestType="@Model.RequestType">Requests opened</a>
+    <a class="@(Model.Show == "requests" && Model.Scope == "resolved" ? "active" : "")" asp-page="/MaintenanceRecords" asp-route-Show="requests" asp-route-Scope="resolved"
+       asp-route-From="@from" asp-route-To="@to" asp-route-Category="@Model.Category" asp-route-RequestType="@Model.RequestType">Resolved</a>
+    <a class="@(Model.Show == "requests" && Model.Scope == "open" ? "active" : "")" asp-page="/MaintenanceRecords" asp-route-Show="requests" asp-route-Scope="open"
+       asp-route-From="@from" asp-route-To="@to" asp-route-Category="@Model.Category" asp-route-RequestType="@Model.RequestType">Open now</a>
+    <a class="@(Model.Show == "returns" ? "active" : "")" asp-page="/MaintenanceRecords" asp-route-Show="returns"
+       asp-route-From="@from" asp-route-To="@to" asp-route-Category="@Model.Category">Returns</a>
+    <a class="@(Model.Show == "items" ? "active" : "")" asp-page="/MaintenanceRecords" asp-route-Show="items"
+       asp-route-From="@from" asp-route-To="@to" asp-route-Category="@Model.Category">Items</a>
+</div>
+
+<partial name="_RecordTable" model="Model.Table" />
+
+@if (Model.Second != null)
+{
+    <h2 style="margin-top: 32px;">@Model.Second.Title</h2>
+    <p class="report-meta">@Model.Second.Description</p>
+    <partial name="_RecordTable" model="Model.Second" />
+}
