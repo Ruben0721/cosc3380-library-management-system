@@ -8,7 +8,6 @@
     double rateChange = Model.LateRate - Model.PrevLateRate;
     int lateTotal = Model.ReturnedLate + Model.StillOutOverdue;
     decimal accruing = Model.OverdueNow.Sum(o => o.EstimatedFine);
-    string Pct(int part, int whole) => whole == 0 ? "—" : (100.0 * part / whole).ToString("0") + "%";
     // Links to the supporting records: the report's filters plus what a number was counted from
     Dictionary<string, string> R(params string[] kv)
     {
@@ -128,88 +127,6 @@
     </ol>
 </section>
 
-<!-- Loan outcomes + fine collection side by side -->
-<div class="report-grid-2">
-    <section class="report-section">
-        <h2>Loan outcomes</h2>
-        <table class="results">
-            <tr><th>Outcome</th><th class="num">Loans</th><th class="num">Share</th></tr>
-            <tr><td>Returned on time</td><td class="num"><a class="drill-num" asp-page="/OverdueRecords" asp-all-route-data='R("Show", "loans", "Outcome", "ontime")'>@Model.ReturnedOnTime</a></td><td class="num">@Pct(Model.ReturnedOnTime, Model.LoansDue)</td></tr>
-            <tr><td>Returned late</td><td class="num"><a class="drill-num" asp-page="/OverdueRecords" asp-all-route-data='R("Show", "loans", "Outcome", "returned-late")'>@Model.ReturnedLate</a></td><td class="num">@Pct(Model.ReturnedLate, Model.LoansDue)</td></tr>
-            <tr><td>Still out, overdue</td><td class="num"><a class="drill-num" asp-page="/OverdueRecords" asp-all-route-data='R("Show", "loans", "Outcome", "still-overdue")'>@Model.StillOutOverdue</a></td><td class="num">@Pct(Model.StillOutOverdue, Model.LoansDue)</td></tr>
-            <tr><td>Still out, not yet due</td>
-                <td class="num"><a class="drill-num" asp-page="/OverdueRecords" asp-all-route-data='R("Show", "loans", "Outcome", "not-due")'>@(Model.LoansDue - Model.ReturnedOnTime - lateTotal)</a></td>
-                <td class="num">@Pct(Model.LoansDue - Model.ReturnedOnTime - lateTotal, Model.LoansDue)</td></tr>
-            <tr class="total"><td>Total</td><td class="num"><a class="drill-num" asp-page="/OverdueRecords" asp-all-route-data='R("Show", "loans")'>@Model.LoansDue</a></td><td class="num">100%</td></tr>
-        </table>
-    </section>
-
-    <section class="report-section">
-        <h2>Fine collection</h2>
-        @if (Model.FinesByType.Count == 0)
-        {
-            <p>No fines were assessed in this period.</p>
-        }
-        else
-        {
-            <table class="results">
-                <tr><th>Type</th><th class="num">Count</th><th class="num">Assessed</th><th class="num">Outstanding</th><th class="num">Collected</th></tr>
-                @foreach (var f in Model.FinesByType)
-                {
-                    <tr>
-                        <td>@f.FineType</td>
-                        <td class="num"><a class="drill-num" asp-page="/OverdueRecords" asp-all-route-data='R("Show", "fines", "FineType", f.FineType)'>@f.Count</a></td>
-                        <td class="num">@f.Assessed.ToString("C")</td>
-                        <td class="num"><a class="drill-num" asp-page="/OverdueRecords" asp-all-route-data='R("Show", "fines", "FineType", f.FineType, "Paid", "unpaid")'>@f.Outstanding.ToString("C")</a></td>
-                        <td class="num">@(f.Assessed == 0 ? "—" : ((double)(f.Paid / f.Assessed) * 100).ToString("0") + "%")</td>
-                    </tr>
-                }
-                <tr class="total">
-                    <td>Total</td>
-                    <td class="num">@Model.FinesByType.Sum(f => f.Count)</td>
-                    <td class="num">@Model.FinesAssessed.ToString("C")</td>
-                    <td class="num">@Model.FinesOutstanding.ToString("C")</td>
-                    <td class="num">@Model.CollectionRate.ToString("0")%</td>
-                </tr>
-            </table>
-        }
-    </section>
-</div>
-
-<!-- Overdue right now -->
-<section class="report-section">
-    <h2 class="section-title">Items overdue right now (@Model.OverdueNow.Count) <a class="section-link no-print" asp-page="/Staff/Returns" asp-route-OverdueOnly="true">Check in overdue items →</a></h2>
-    @if (Model.OverdueNow.Count == 0)
-    {
-        <p>No items are overdue right now.</p>
-    }
-    else
-    {
-        <table class="results">
-            <tr>
-                <th>Item</th><th>Category</th><th>Borrower</th><th>Borrower type</th>
-                <th>Due date</th><th class="num">Days overdue</th><th class="num">Fine so far</th>
-            </tr>
-            @foreach (var o in Model.OverdueNow)
-            {
-                <tr>
-                    <td>@o.ItemName</td>
-                    <td>@o.Category</td>
-                    <td>@o.Borrower</td>
-                    <td>@o.BorrowerType</td>
-                    <td>@o.DueDate.ToString("MMM d, yyyy")</td>
-                    <td class="num">@o.DaysOverdue</td>
-                    <td class="num">@o.EstimatedFine.ToString("C")</td>
-                </tr>
-            }
-            <tr class="total">
-                <td colspan="6">Total</td>
-                <td class="num">@accruing.ToString("C")</td>
-            </tr>
-        </table>
-    }
-</section>
-
 <!-- By category -->
 <section class="report-section">
     <h2>Late returns by category</h2>
@@ -250,33 +167,8 @@
     }
 </section>
 
-<!-- By borrower type + monthly trend side by side -->
-<div class="report-grid-2">
-    <section class="report-section">
-        <h2>By borrower type</h2>
-        @if (Model.ByBorrowerType.Count == 0)
-        {
-            <p>No loans were due in this period.</p>
-        }
-        else
-        {
-            <table class="results">
-                <tr><th>Borrower type</th><th class="num">Loans due</th><th class="num">Late</th><th class="num">Late rate</th><th class="num">Fines</th></tr>
-                @foreach (var b in Model.ByBorrowerType)
-                {
-                    <tr>
-                        <td>@b.Group</td>
-                        <td class="num"><a class="drill-num" asp-page="/OverdueRecords" asp-all-route-data='R("Show", "loans", "BorrowerType", b.Group)'>@b.Due</a></td>
-                        <td class="num"><a class="drill-num" asp-page="/OverdueRecords" asp-all-route-data='R("Show", "loans", "BorrowerType", b.Group, "Outcome", "late")'>@b.Late</a></td>
-                        <td class="num">@b.LateRate.ToString("0")%</td>
-                        <td class="num">@b.Fines.ToString("C")</td>
-                    </tr>
-                }
-            </table>
-        }
-    </section>
-
-    <section class="report-section">
+<!-- Monthly trend -->
+<section class="report-section">
         <h2>Monthly late-return rate</h2>
         <table class="results">
             <tr><th>Month</th><th class="num">Loans due</th><th class="num">Late</th><th class="num">Late rate</th></tr>
@@ -290,8 +182,7 @@
                 </tr>
             }
         </table>
-    </section>
-</div>
+</section>
 
 <!-- Monthly fines and collections -->
 <section class="report-section">
@@ -377,30 +268,8 @@
     </section>
 </div>
 
-<!-- Fine policy -->
-<section class="report-section">
-    <h2>Fine policy (reference)</h2>
-    <table class="results">
-        <tr>
-            <th>Category</th><th class="num">Loan days</th><th class="num">Per day late</th>
-            <th class="num">Overdue cap</th><th class="num">Damage fee</th><th class="num">Replacement cost</th>
-        </tr>
-        @foreach (var p in Model.Policies)
-        {
-            <tr>
-                <td>@(LibraryOptions.Types.Where(t => t.Value == p.ItemType).Select(t => t.Label).FirstOrDefault() ?? p.ItemType)</td>
-                <td class="num">@p.LoanDays</td>
-                <td class="num">@p.DailyOverdueRate.ToString("C")</td>
-                <td class="num">@p.OverdueCap.ToString("C")</td>
-                <td class="num">@p.DamageFee.ToString("C")</td>
-                <td class="num">@p.ReplacementCost.ToString("C")</td>
-            </tr>
-        }
-    </table>
-</section>
-
 <p class="report-meta" style="font-size: 13px; color: #5f6b64;">
     Compared with the previous period @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy").
-    A loan is late if it was returned after its due date or is still out past it. Collected = payments received that month; still unpaid = that month's fines not yet paid. "Items overdue right now" is not limited to the date range; fine so far = days overdue × daily rate, up to the category's cap.
+    A loan is late if it was returned after its due date or is still out past it. Collected = payments received that month; still unpaid = that month's fines not yet paid. Fines follow the <a asp-page="/Policies">borrowing &amp; fines policy</a>.
     Generated @DateTime.Now.ToString("MMM d, yyyy h:mm tt").
 </p>

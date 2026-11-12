@@ -16,9 +16,15 @@
             }
             else
             {
-                <span class="pill pill-off">All copies out</span>
+                bool allSetAside = Model.CopiesSetAside > 0 && Model.CopiesSetAside == Model.Copies;
+                <span class="pill pill-off">@(allSetAside ? "Reserved for pickup" : "Not available")</span>
                 <span>
-                    @(Model.NextDue != null ? $"Next copy due back {Model.NextDue:MMM d}" : "Not available right now")
+                    @(Model.CopiesSetAside > 0
+                        ? $"{Model.CopiesSetAside} of {Model.Copies} {(Model.Copies == 1 ? "copy is" : "copies are")} held at the desk for another member's pickup"
+                        : "")
+                    @(Model.CopiesSetAside > 0 && Model.NextDue != null ? " · " : "")
+                    @(Model.NextDue != null ? $"Next copy due back {Model.NextDue:MMM d}" : "")
+                    @(Model.CopiesSetAside == 0 && Model.NextDue == null ? "Not available right now" : "")
                     @(Model.InLine > 0 ? $" · {Model.InLine} {(Model.InLine == 1 ? "person" : "people")} waiting" : "")
                 </span>
             }
@@ -92,7 +98,7 @@
     {
         <h2>Place a hold</h2>
         <p>
-            Every copy is checked out. Join the line and the next copy that comes back is set aside for you.
+            No copy is free right now. Join the line and the next copy that becomes free is set aside for you.
             @(Model.InLine == 0 ? "You'd be first in line." : $"You'd be #{Model.InLine + 1} in line.")
         </p>
         <form method="post" asp-page-handler="Hold" asp-route-ItemId="@Model.ItemId" class="d-inline">
@@ -101,8 +107,8 @@
     }
     else if (Model.AtHoldLimit)
     {
-        <h2>Place a hold</h2>
-        <p><strong>You have @Model.HoldLimit holds, your limit.</strong> Cancel one from your account to place another.</p>
+        <h2>@(Model.CopiesAvailable > 0 ? "Request checkout" : "Place a hold")</h2>
+        <p><strong>You have @Model.HoldLimit active requests and holds, your limit.</strong> Pick up or cancel one from your account to place another.</p>
     }
 
     @if (Model.MemberId != null)

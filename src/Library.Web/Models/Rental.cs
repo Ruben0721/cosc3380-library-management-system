@@ -12,6 +12,7 @@ namespace Project.Models
         public DateTime? EndDate { get; set; }        
         public DateTime? ReturnedDate { get; set; } 
         public bool IsReturned { get; set; }
+        public DateTime? DroppedOffAt { get; set; }
 
     }
 }

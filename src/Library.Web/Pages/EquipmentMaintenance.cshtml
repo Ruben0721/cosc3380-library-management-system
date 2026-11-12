@@ -196,111 +196,36 @@
     }
 </section>
 
-<!-- By category -->
+<!-- Monthly activity -->
 <section class="report-section">
-    <h2>Maintenance by category</h2>
-    @if (Model.ByCategory.Count == 0)
-    {
-        <p>No items in this category.</p>
-    }
-    else
-    {
-        <table class="results">
+    <h2>Monthly activity</h2>
+    <table class="results">
+        <tr>
+            <th>Month</th><th class="num">Repairs</th><th class="num">Inspections</th>
+            <th class="num">Reviews</th><th class="num">Resolved</th>
+        </tr>
+        @foreach (var m in Model.Monthly)
+        {
             <tr>
-                <th>Category</th><th class="num">Items</th><th class="num">Out of service</th>
-                <th class="num">In service</th><th class="num">Returns</th><th class="num">Damaged</th>
-                <th class="num">Damage rate</th><th class="num">Requests</th><th class="num">Still open</th>
-                <th class="num">Avg days to resolve</th><th class="num">Damage fees</th>
+                <td>@m.Month</td>
+                <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Month", Ym(m.Month), "RequestType", "Damage Repair")'>@m.DamageRepairs</a></td>
+                <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Month", Ym(m.Month), "RequestType", "Routine Inspection")'>@m.Inspections</a></td>
+                <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Month", Ym(m.Month), "RequestType", "Replacement Review")'>@m.ReplacementReviews</a></td>
+                <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Scope", "resolved", "Month", Ym(m.Month))'>@m.Resolved</a></td>
             </tr>
-            @foreach (var c in Model.ByCategory)
-            {
-                <tr>
-                    <td>@c.Category</td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "items", "Category", ValueOf(c.Category))'>@c.Items</a></td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "items", "State", "out", "Category", ValueOf(c.Category))'>@c.OutOfService</a></td>
-                    <td class="num">@c.AvailabilityPct.ToString("0")%</td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "returns", "Category", ValueOf(c.Category))'>@c.Returns</a></td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Category", ValueOf(c.Category), "RequestType", "Damage Repair")'>@c.Damaged</a></td>
-                    <td class="num">@c.DamageRate.ToString("0.0")%</td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Category", ValueOf(c.Category))'>@c.RequestsOpened</a></td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Scope", "open", "Category", ValueOf(c.Category))'>@c.StillOpen</a></td>
-                    <td class="num">@(c.AvgDaysToResolve == null ? "—" : c.AvgDaysToResolve.Value.ToString("0.0"))</td>
-                    <td class="num">@c.DamageFees.ToString("C")</td>
-                </tr>
-            }
-            <tr class="total">
-                <td>Total</td>
-                <td class="num">@Model.ItemsTracked</td>
-                <td class="num">@Model.OutOfServiceNow</td>
-                <td class="num">@inServicePct.ToString("0")%</td>
-                <td class="num">@Model.ReturnsInPeriod</td>
-                <td class="num">@Model.DamagedReturns</td>
-                <td class="num">@Model.DamageRate.ToString("0.0")%</td>
-                <td class="num">@Model.ByCategory.Sum(c => c.RequestsOpened)</td>
-                <td class="num">@Model.ByCategory.Sum(c => c.StillOpen)</td>
-                <td class="num">@(Model.AvgDaysToResolve == null ? "—" : Model.AvgDaysToResolve.Value.ToString("0.0"))</td>
-                <td class="num">@Model.DamageFees.ToString("C")</td>
-            </tr>
-        </table>
-    }
+        }
+        <tr class="total">
+            <td>Total</td>
+            <td class="num">@Model.Monthly.Sum(m => m.DamageRepairs)</td>
+            <td class="num">@Model.Monthly.Sum(m => m.Inspections)</td>
+            <td class="num">@Model.Monthly.Sum(m => m.ReplacementReviews)</td>
+            <td class="num">@Model.Monthly.Sum(m => m.Resolved)</td>
+        </tr>
+    </table>
 </section>
-
-<!-- Monthly + inspections side by side -->
-<div class="report-grid-2">
-    <section class="report-section">
-        <h2>Monthly activity</h2>
-        <table class="results">
-            <tr>
-                <th>Month</th><th class="num">Repairs</th><th class="num">Inspections</th>
-                <th class="num">Reviews</th><th class="num">Resolved</th>
-            </tr>
-            @foreach (var m in Model.Monthly)
-            {
-                <tr>
-                    <td>@m.Month</td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Month", Ym(m.Month), "RequestType", "Damage Repair")'>@m.DamageRepairs</a></td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Month", Ym(m.Month), "RequestType", "Routine Inspection")'>@m.Inspections</a></td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Month", Ym(m.Month), "RequestType", "Replacement Review")'>@m.ReplacementReviews</a></td>
-                    <td class="num"><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "requests", "Scope", "resolved", "Month", Ym(m.Month))'>@m.Resolved</a></td>
-                </tr>
-            }
-            <tr class="total">
-                <td>Total</td>
-                <td class="num">@Model.Monthly.Sum(m => m.DamageRepairs)</td>
-                <td class="num">@Model.Monthly.Sum(m => m.Inspections)</td>
-                <td class="num">@Model.Monthly.Sum(m => m.ReplacementReviews)</td>
-                <td class="num">@Model.Monthly.Sum(m => m.Resolved)</td>
-            </tr>
-        </table>
-    </section>
-
-    <section class="report-section">
-        <h2>Routine inspection schedule</h2>
-        @if (Model.Inspections.Count == 0)
-        {
-            <p>No items in this category need routine inspections.</p>
-        }
-        else
-        {
-            <table class="results">
-                <tr><th>Item</th><th>Status</th><th class="num">Since last</th><th class="num">Until next</th><th>Last inspection</th></tr>
-                @foreach (var i in Model.Inspections)
-                {
-                    <tr>
-                        <td><a class="drill-num" asp-page="/MaintenanceRecords" asp-all-route-data='R("Show", "item", "ItemId", i.ItemId.ToString())'>@i.ItemName</a></td>
-                        <td>@i.ItemStatus</td>
-                        <td class="num">@i.ReturnsSinceLast of @i.Every</td>
-                        <td class="num">@(i.ReturnsUntilNext == 0 ? "Due now" : i.ReturnsUntilNext.ToString())</td>
-                        <td>@(i.LastInspection == null ? "Never" : i.LastInspection.Value.ToString("MMM d, yyyy"))</td>
-                    </tr>
-                }
-            </table>
-        }
-    </section>
-</div>
 
 <p class="report-meta" style="font-size: 13px; color: #5f6b64;">
     Compared with the previous period @Model.PrevFrom.ToString("MMM d, yyyy") – @Model.PrevTo.ToString("MMM d, yyyy").
     Requests are created automatically when an item is returned damaged, reaches its inspection interval,
-    or has 3 or more damage repairs in 180 days. Recommendation: Replace = 3+ repairs in 180 days, an open replacement review, damage fees at or above the replacement cost, or lost; Monitor = 2 repairs in 180 days. Generated @DateTime.Now.ToString("MMM d, yyyy h:mm tt").
+    or has 3 or more damage repairs in 180 days. The routine inspection list is on the <a asp-page="/Staff/Maintenance">Maintenance</a> page. Recommendation: Replace = 3+ repairs in 180 days, an open replacement review, damage fees at or above the replacement cost, or lost; Monitor = 2 repairs in 180 days. Generated @DateTime.Now.ToString("MMM d, yyyy h:mm tt").
 </p>

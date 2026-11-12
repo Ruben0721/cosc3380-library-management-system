@@ -1,16 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 using Project.Configuration;
 using Project.Data;
 using Project.Models;
 
 namespace Project.Pages
 {
-    // Member self-service for one title:
-    //   available  -> place a checkout request (staff set it aside, member picks it up)
-    //   all out    -> place a hold and join the line (a database trigger sets the next returned copy aside)
-    //   any time   -> save it to the reading list
+   
     public class BorrowModel : PageModel
     {
         private readonly LibraryDbContext _db;
@@ -27,17 +25,18 @@ namespace Project.Pages
         public string CategoryLabel { get; set; } = "";
         public int Copies { get; set; }
         public int CopiesAvailable { get; set; }
-        public DateTime? NextDue { get; set; }          // earliest due date among copies on loan
-        public int InLine { get; set; }                 // members with a pending hold on this title
+        public int CopiesSetAside { get; set; }         
+        public DateTime? NextDue { get; set; }          
+        public int InLine { get; set; }                 
         public bool NeedsPickup { get; set; }
         public int LoanDays { get; set; }
 
         // The signed-in member
         public int? MemberId { get; set; }
-        public string? Blocked { get; set; }            // can't request or hold at all (sign-in, inactive, fines)
-        public DateTime? MyLoanDue { get; set; }        // has a copy checked out
-        public DateTime? MyPickupBy { get; set; }       // a copy is set aside for them
-        public int? MyPlaceInLine { get; set; }         // waiting in the hold queue
+        public string? Blocked { get; set; }           
+        public DateTime? MyLoanDue { get; set; }        
+        public DateTime? MyPickupBy { get; set; }      
+        public int? MyPlaceInLine { get; set; }         
         public bool InReadingList { get; set; }
         public bool BlockedByFines { get; set; }
         public bool AtHoldLimit { get; set; }
@@ -46,7 +45,7 @@ namespace Project.Pages
         private int? _availableCopyId;
         private List<int> _titleCopyIds = new();
 
-        public bool CanRequest => Blocked == null && MyLoanDue == null && MyPickupBy == null && MyPlaceInLine == null && _availableCopyId != null;
+        public bool CanRequest => Blocked == null && MyLoanDue == null && MyPickupBy == null && MyPlaceInLine == null && _availableCopyId != null && !AtHoldLimit;
         public bool CanHold => Blocked == null && MyLoanDue == null && MyPickupBy == null && MyPlaceInLine == null && _availableCopyId == null && !AtHoldLimit;
 
         public async Task<IActionResult> OnGetAsync()
@@ -55,7 +54,7 @@ namespace Project.Pages
             return Page();
         }
 
-        // Available: ask staff to set a copy aside for pickup
+        
         public async Task<IActionResult> OnPostRequestAsync()
         {
             if (!await LoadAsync()) return NotFound();
@@ -69,23 +68,25 @@ namespace Project.Pages
             }
 
             var deadline = DateTime.Today.AddDays(Circulation.PickupDays).AddHours(23).AddMinutes(59);
-            await AddHoldAsync(_availableCopyId!.Value, "Ready", deadline);
+            var refused = await AddHoldAsync(_availableCopyId!.Value, "Ready", deadline);
+            if (refused != null) { Error = refused; return Back(); }
             Message = $"Request placed. \"{ItemName}\" will be held for you at the circulation desk until {deadline:dddd, MMMM d}. Your {LoanDays}-day loan starts when you pick it up.";
             return Back();
         }
 
-        // All copies out: join the line
+        
         public async Task<IActionResult> OnPostHoldAsync()
         {
             if (!await LoadAsync()) return NotFound();
             if (!CanHold) { Error = Blocked ?? (AtHoldLimit ? $"You already have {HoldLimit} holds, your limit." : "A hold can't be placed right now."); return Back(); }
 
-            await AddHoldAsync(ItemId, "Pending", null);
+            var refused = await AddHoldAsync(ItemId, "Pending", null);
+            if (refused != null) { Error = refused; return Back(); }
             Message = $"Hold placed. You're #{InLine + 1} in line for \"{ItemName}\". When a copy comes back, it's set aside for you and you'll see it under Ready for pickup in your account.";
             return Back();
         }
 
-        // Cancel the member's request or hold on this title
+        
         public async Task<IActionResult> OnPostCancelAsync()
         {
             if (!await LoadAsync()) return NotFound();
@@ -128,7 +129,7 @@ namespace Project.Pages
             return Back();
         }
 
-        // Self-checkout, only for types listed in Circulation.SelfCheckoutTypes (none by default)
+        
         public async Task<IActionResult> OnPostBorrowAsync()
         {
             if (!await LoadAsync()) return NotFound();
@@ -141,9 +142,10 @@ namespace Project.Pages
 
         private IActionResult Back() => RedirectToPage(new { ItemId });
 
-        private async Task AddHoldAsync(int copyId, string status, DateTime? deadline)
+        // Returns null on success, or the reason a database rule (trigger) refused it.
+        private async Task<string?> AddHoldAsync(int copyId, string status, DateTime? deadline)
         {
-            _db.Holds.Add(new Hold
+            var hold = new Hold
             {
                 HoldId = await Circulation.NextHoldIdAsync(_db),
                 LibraryUserId = MemberId!.Value,
@@ -152,11 +154,24 @@ namespace Project.Pages
                 Status = status,
                 ReadyDate = status == "Ready" ? DateTime.Now : null,
                 PickupDeadline = deadline
-            });
-            await _db.SaveChangesAsync();
+            };
+            _db.Holds.Add(hold);
+            try
+            {
+                await _db.SaveChangesAsync();
+                return null;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is MySqlException { SqlState: "45000" } rule)
+            {
+                
+                _db.Entry(hold).State = EntityState.Detached;
+                return rule.Message.Contains("hold limit", StringComparison.OrdinalIgnoreCase)
+                    ? $"You've reached your limit of active requests and holds ({HoldLimit}). Pick up or cancel one from your account first."
+                    : rule.Message;
+            }
         }
 
-        // Loads the title (all copies with the same name and category) and the member's situation.
+        
         private async Task<bool> LoadAsync()
         {
             await Circulation.ExpirePickupsAsync(_db);
@@ -188,6 +203,7 @@ namespace Project.Pages
             var setAside = titleHolds.Where(h => h.Status == "Ready").Select(h => h.ItemId!.Value).ToHashSet();
             var free = copies.Where(c => c.Status == "Available" && !setAside.Contains(c.Id)).Select(c => c.Id).ToList();
             CopiesAvailable = free.Count;
+            CopiesSetAside = copies.Count(c => c.Status == "Available" && setAside.Contains(c.Id));
             _availableCopyId = free.Contains(ItemId) ? ItemId : free.Cast<int?>().FirstOrDefault();
 
             var pendingInOrder = titleHolds.Where(h => h.Status == "Pending").OrderBy(h => h.RequestDatetime).ToList();
@@ -234,8 +250,9 @@ namespace Project.Pages
             }
 
             HoldLimit = await Circulation.WaitlistLimitAsync(_db, MemberId.Value);
-            int myPending = await _db.Holds.CountAsync(h => h.LibraryUserId == MemberId && h.Status == "Pending");
-            AtHoldLimit = myPending >= HoldLimit;
+            
+            int myActive = await _db.Holds.CountAsync(h => h.LibraryUserId == MemberId && (h.Status == "Pending" || h.Status == "Ready"));
+            AtHoldLimit = myActive >= HoldLimit;
             return true;
         }
     }

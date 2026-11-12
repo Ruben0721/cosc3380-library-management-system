@@ -13,10 +13,7 @@ namespace Project.Pages
     public record MyPaymentRow(string PaymentId, string? ItemName, string FineType, decimal Amount,
                                string Method, DateTime PaymentDate);
 
-    // A student or faculty member pays their own fines online.
-    // Each fine paid gets its own Payment row (method "card", linked by FineId),
-    // the same as a desk payment, so the fines report totals still add up.
-    // Class project: no card is charged and card details are never saved.
+    
     public class MyFinesModel : PageModel
     {
         private readonly LibraryDbContext _db;
@@ -85,7 +82,7 @@ namespace Project.Pages
                 });
                 f.IsPaid = true;
             }
-            await _db.SaveChangesAsync();   // one transaction: all payments or none
+            await _db.SaveChangesAsync();  
 
             string last4 = new string(CardNumber!.Where(char.IsDigit).ToArray())[^4..];
             decimal total = fines.Sum(f => f.Amount);
@@ -99,7 +96,7 @@ namespace Project.Pages
         private string? CheckCard()
         {
             var digits = new string((CardNumber ?? "").Where(char.IsDigit).ToArray());
-            if (digits.Length < 13 || digits.Length > 19 || !Luhn(digits)) return "That card number isn't valid.";
+            if (digits.Length < 12 || digits.Length > 19) return "Enter a card number of 12 to 19 digits.";
 
             var parts = (CardExpiry ?? "").Split('/');
             if (parts.Length != 2 || !int.TryParse(parts[0], out int mm) || !int.TryParse(parts[1], out int yy) || mm < 1 || mm > 12)
@@ -112,17 +109,6 @@ namespace Project.Pages
             return null;
         }
 
-        private static bool Luhn(string digits)
-        {
-            int sum = 0; bool dbl = false;
-            for (int i = digits.Length - 1; i >= 0; i--)
-            {
-                int d = digits[i] - '0';
-                if (dbl) { d *= 2; if (d > 9) d -= 9; }
-                sum += d; dbl = !dbl;
-            }
-            return sum % 10 == 0;
-        }
 
         private async Task LoadAsync()
         {

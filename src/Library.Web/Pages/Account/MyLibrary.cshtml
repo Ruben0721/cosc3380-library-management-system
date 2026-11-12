@@ -5,7 +5,7 @@
     ViewData["Title"] = "My Library Account";
     var dollars = CultureInfo.GetCultureInfo("en-US");
     var tabs = new[] { ("overview", "Overview"), ("checkouts", "Checkouts"),
-        ("requests", "Requests"), ("fines", "Fines"), ("personal", "Personal Info") };
+        ("requests", "Requests"), ("readinglist", "Reading list"), ("fines", "Fines"), ("personal", "Personal Info") };
 }
 
 <div class="library-account">
@@ -19,6 +19,20 @@
                aria-current="@(Model.ActiveTab == key ? "page" : null)">@label</a>
         }
     </nav>
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="status">
+            @Model.Message
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.Error
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     @if (Model.FullName == null)
     {
         <p class="alert alert-warning">Contact library staff to link your borrower record and view your library activity.</p>
@@ -53,9 +67,17 @@
                             <h3 class="h5">Checkouts</h3>
                             <p class="account-value">@Model.Loans.Count</p>
                             <p>Items currently checked out</p>
-                            @if (Model.Loans.Any(l => l.Due < DateTime.Today))
+                            @{
+                                int overdueOut = Model.Loans.Count(l => l.DaysLate > 0 && l.DroppedOffAt == null);
+                                int inBookDrop = Model.Loans.Count(l => l.DroppedOffAt != null);
+                            }
+                            @if (overdueOut > 0)
                             {
-                                <p class="text-danger fw-bold">@Model.Loans.Count(l => l.Due < DateTime.Today) overdue</p>
+                                <p class="text-danger fw-bold">@overdueOut overdue</p>
+                            }
+                            @if (inBookDrop > 0)
+                            {
+                                <p class="fw-bold">@inBookDrop in the book drop, waiting for check-in</p>
                             }
                             <a asp-page="/Account/MyLibrary" asp-route-tab="checkouts">View checkouts &rarr;</a>
                         </section>
@@ -75,7 +97,7 @@
                     <div class="col-md-4">
                         <section class="library-account-panel account-summary">
                             <h3 class="h5">Fines</h3>
-                            <p class="account-value">@Model.TotalDue.ToString("C", dollars)</p>
+                            <p class="account-value">@((Model.TotalDue + Model.AccruingTotal).ToString("C", dollars))</p>
                             <p>Unpaid balance</p>
 
                             <a asp-page="/Account/MyLibrary" asp-route-tab="fines">View fines &rarr;</a>
@@ -89,23 +111,40 @@
             <div class="library-account-panel">
                 <section class="mb-4">
                     <h2 class="h4">Items checked out</h2>
-                    <p>These are the items currently borrowed on your account, listed by due date. Check the dates below and return items on time to avoid overdue charges.</p>
+                    <p>These are the items currently borrowed on your account, listed by due date. Return items on time to avoid overdue charges. Overdue fines are charged when the item is returned.</p>
                     @if (Model.Loans.Count == 0)
                     {
                         <p>You have no items checked out. <a asp-page="/Search">Browse the catalog</a> to find your next item.</p>
                     }
                     else
                     {
+                        <p class="small text-muted">Books can be returned any time in the book drop by the library entrance. Click <strong>I used the book drop</strong> after dropping one off and the late fee stops. Laptops, headphones, maps and media must be returned at the circulation desk.</p>
                         <div class="table-responsive"><table class="table">
-                            <thead><tr><th>Item</th><th>Due date</th></tr></thead>
+                            <thead><tr><th>Item</th><th>Due date</th><th></th></tr></thead>
                             <tbody>
                             @foreach (var loan in Model.Loans)
                             {
                                 <tr><td>@(loan.Item ?? "Item name unavailable")</td>
                                     <td>@(loan.Due?.ToString("MMM d, yyyy") ?? "No due date")
-                                        @if (loan.Due < DateTime.Today)
+                                        @if (loan.DroppedOffAt != null)
                                         {
-                                            <strong class="text-danger">Overdue</strong>
+                                            <span class="d-block small">In the book drop since @loan.DroppedOffAt.Value.ToString("MMM d, h:mm tt"), waiting for staff check-in</span>
+                                        }
+                                        else if (loan.DaysLate > 0)
+                                        {
+                                            <strong class="text-danger">
+                                                Overdue · @loan.DaysLate day@(loan.DaysLate == 1 ? "" : "s")@(loan.Accruing > 0 ? $" · about {loan.Accruing.ToString("C", dollars)} so far" : "")
+                                            </strong>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (loan.CanDropOff)
+                                        {
+                                            <form method="post" asp-page-handler="DropOff"
+                                                  onsubmit="return confirm('Confirm you put this book in the book drop.');">
+                                                <input type="hidden" name="rentalId" value="@loan.RentalId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">I used the book drop</button>
+                                            </form>
                                         }
                                     </td></tr>
                             }
@@ -181,21 +220,71 @@
                 </section>
             </div>
         }
+        else if (Model.ActiveTab == "readinglist")
+        {
+            <div class="library-account-panel">
+                <section>
+                    <h2 class="h4">Reading list</h2>
+                    <p>Titles you saved. Open one to request it if it's on the shelf, or place a hold if every copy is out.</p>
+                    @if (Model.ReadingList.Count == 0)
+                    {
+                        <p>Your reading list is empty. Open any title in the <a asp-page="/Search">catalog</a> and choose <strong>Save to reading list</strong>.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table">
+                            <thead><tr><th>Title</th><th>Saved</th><th>Status</th><th></th></tr></thead>
+                            <tbody>
+                            @foreach (var r in Model.ReadingList)
+                            {
+                                <tr>
+                                    <td><a asp-page="/Borrow" asp-route-ItemId="@r.ItemId">@(r.Title ?? "Item name unavailable")</a></td>
+                                    <td>@r.Added.ToString("MMM d, yyyy")</td>
+                                    <td>@if (r.Highlight) { <strong>@r.Status</strong> } else { @r.Status }</td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex gap-2">
+                                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Borrow" asp-route-ItemId="@r.ItemId">View</a>
+                                            <form method="post" asp-page-handler="RemoveSaved">
+                                                <input type="hidden" name="itemId" value="@r.ItemId" />
+                                                <button type="submit" class="btn btn-sm btn-link">Remove</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table></div>
+                    }
+                </section>
+            </div>
+        }
         else if (Model.ActiveTab == "fines")
         {
             <div class="library-account-panel">
 
                 <section>
-                    <h2 class="h4">Fines due</h2>
-                    <p>This section lists unpaid charges linked to your account, including the item, reason, and amount. You can pay online or at the circulation desk.</p>
-                    <p>Total owed: <strong>@Model.TotalDue.ToString("C", dollars)</strong></p>
-                    @if (Model.Fines.Count == 0)
+                    <h2 class="h4">Fines</h2>
+                    <p>Pay charged fines online or at the circulation desk. Late fees on items you still have are charged when you return them.</p>
+
+                    <dl class="account-details">
+                        <div>
+                            <dt>Owed now</dt>
+                            <dd>
+                                <strong>@((Model.TotalDue + Model.AccruingTotal).ToString("C", dollars))</strong>
+                                @if (Model.AccruingTotal > 0)
+                                {
+                                    <span class="d-block small text-muted">
+                                        @Model.TotalDue.ToString("C", dollars) in charged fines
+                                        + about @Model.AccruingTotal.ToString("C", dollars) in late fees on overdue items (charged and payable once returned)
+                                    </span>
+                                }
+                            </dd>
+                        </div>
+                    </dl>
+
+                    @if (Model.Fines.Count > 0)
                     {
-                        <p>You have no unpaid fines. There is no outstanding balance on your account.</p>
-                        <a class="btn btn-outline-secondary" asp-page="/MyFines">Payment history</a>
-                    }
-                    else
-                    {
+                        <h3 class="h5 mt-4">Charged fines</h3>
                         <div class="table-responsive"><table class="table">
                             <thead><tr><th>Item</th><th>Reason</th><th>Amount</th></tr></thead>
                             <tbody>
@@ -208,6 +297,40 @@
                         </table></div>
                         <a class="btn btn-library" asp-page="/MyFines">Pay @Model.TotalDue.ToString("C", dollars) online</a>
                     }
+
+                    @if (Model.OverdueLoans.Count > 0)
+                    {
+                        <h3 class="h5 mt-4">Overdue items</h3>
+                        <div class="table-responsive"><table class="table">
+                            <thead><tr><th>Item</th><th>Was due</th><th>Days overdue</th><th>Late fee so far</th></tr></thead>
+                            <tbody>
+                            @foreach (var loan in Model.OverdueLoans)
+                            {
+                                <tr><td>@(loan.Item ?? "Item name unavailable")</td>
+                                    <td>@(loan.Due?.ToString("MMM d, yyyy"))</td>
+                                    <td>@loan.DaysLate</td>
+                                    <td>@(loan.Accruing > 0 ? $"about {loan.Accruing.ToString("C", dollars)}" : "—")@(loan.DroppedOffAt != null ? " (stopped, in drop box)" : "")</td></tr>
+                            }
+                            </tbody>
+                        </table></div>
+                       int stillOut = Model.OverdueLoans.Count(l => l.DroppedOffAt == null);
+                        int inDrop = Model.OverdueLoans.Count - stillOut;
+                        if (stillOut > 0)
+                        {
+                            <p class="mb-0">Return @(stillOut == 1 ? "it" : "them") as soon as possible. The fee grows each day until then.</p>
+                        }
+                        if (inDrop > 0)
+                        {
+                            <p class="mb-0">@(inDrop == 1 ? "The item" : $"{inDrop} items") in the book drop stopped building up a fee when you dropped @(inDrop == 1 ? "it" : "them") off. The fee is charged when staff check @(inDrop == 1 ? "it" : "them") in.</p>
+                        }
+                    }
+
+                    @if (Model.Fines.Count == 0 && Model.OverdueLoans.Count == 0)
+                    {
+                        <p class="mt-3">You have no fines and nothing overdue.</p>
+                    }
+
+                    <p class="mt-3 mb-0"><a asp-page="/MyFines">Payment history</a></p>
                 </section>
             </div>
         }

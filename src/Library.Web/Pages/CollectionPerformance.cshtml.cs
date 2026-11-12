@@ -186,7 +186,7 @@ namespace Project.Pages
                                    .OrderByDescending(t => t.Waiting).ThenByDescending(t => t.HoldsInPeriod)
                                    .Take(10).ToList();
 
-            LeastBorrowed = titles.Where(t => t.Checkouts > 0)
+            LeastBorrowed = titles.Where(t => t.Checkouts > 0 && t.Waiting == 0)   
                                   .OrderBy(t => t.PerCopy).ThenBy(t => t.Title)
                                   .Take(10).ToList();
 

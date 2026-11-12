@@ -1,0 +1,60 @@
+@page
+@model Project.Pages.PoliciesModel
+@{
+    ViewData["Title"] = "Borrowing & fines policy";
+}
+
+<div class="report-header">
+    <div>
+        <p class="eyebrow">Library policies</p>
+        <h1>Borrowing &amp; fines policy</h1>
+        <p class="report-lede">How long you can keep each kind of item, what happens if it's late, damaged or lost, and how requests and holds work.</p>
+    </div>
+</div>
+
+<section class="report-section">
+    <h2>Loan periods and fines</h2>
+    <table class="results">
+        <tr>
+            <th>Category</th><th class="num">Loan period</th><th class="num">Late fee per day</th>
+            <th class="num">Late fee cap</th><th class="num">Damage fee</th><th class="num">Lost item charge</th>
+        </tr>
+        @foreach (var p in Model.Rows)
+        {
+            <tr>
+                <td>@p.Category</td>
+                <td class="num">@p.LoanDays days</td>
+                <td class="num">@p.PerDay.ToString("C")</td>
+                <td class="num">@p.Cap.ToString("C")</td>
+                <td class="num">@p.DamageFee.ToString("C")</td>
+                <td class="num">@p.ReplacementCost.ToString("C")</td>
+            </tr>
+        }
+    </table>
+    <p class="report-meta">
+        Late fees are charged when the item is returned: days late × the daily fee, up to the cap.
+        A damaged item is charged the damage fee (plus any late fee). A lost item is charged its replacement cost.
+    </p>
+</section>
+
+<div class="report-grid-2">
+    <section class="report-section">
+        <h2>Borrowing</h2>
+        <ul>
+            <li>Students can have up to 5 items checked out at a time; faculty up to 10.</li>
+            <li>Request an available item online. It's held at the circulation desk for @Project.Pages.Circulation.PickupDays days, and your loan starts when you pick it up.</li>
+            <li>If every copy is out, place a hold. Holds are first come, first served; the next copy returned is set aside for the first person in line.</li>
+            <li>Members with more than @Project.Pages.Circulation.FineBlockLimit.ToString("C") in unpaid fines can't request or hold items until they pay.</li>
+        </ul>
+    </section>
+
+    <section class="report-section">
+        <h2>Returns and payments</h2>
+        <ul>
+            <li>Return items at the circulation desk. Staff check the condition of every item.</li>
+            <li>Books can also go in the book drop at any time. Mark it in your account and the late fee stops from that moment.</li>
+            <li>Laptops, headphones, maps and media must be returned at the desk.</li>
+            <li>Pay fines online from your account, or at the desk by cash, card or check.</li>
+        </ul>
+    </section>
+</div>

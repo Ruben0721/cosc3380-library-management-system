@@ -10,9 +10,7 @@ namespace Project.Pages.Staff
                                   string? Reason, string Status, DateTime CreatedAt, DateTime? ResolvedAt,
                                   int DaysOpen, string ItemStatus, string? Notes);
 
-    // Work through maintenance requests.
-    // Setting a request to Resolved fires trg_maintenance_resolved, which stamps
-    // ResolvedAt and puts the item back to Available (if nothing else is open on it).
+    
     public class MaintenanceModel : PageModel
     {
         private readonly LibraryDbContext _db;
@@ -28,8 +26,15 @@ namespace Project.Pages.Staff
 
         public List<MaintRequestRow> Requests { get; set; } = new();
 
+       
+        public record InspectionRow(int ItemId, string? ItemName, string Category, string ItemStatus,
+                                    int Every, int ReturnsSinceLast, int ReturnsUntilNext, DateTime? LastInspection);
+        public List<InspectionRow> Inspections { get; set; } = new();
+
         public async Task OnGetAsync()
         {
+            await LoadInspectionsAsync();
+
             var now = DateTime.Now;
             var items = await _db.Inventory.AsNoTracking()
                 .Select(i => new { i.Id, i.Name, i.Type, i.Status })
@@ -55,6 +60,42 @@ namespace Project.Pages.Staff
                 .OrderBy(r => OpenStatuses.Contains(r.Status) ? 0 : 1)
                 .ThenBy(r => r.RequestType == "Replacement Review" ? 0 : r.RequestType == "Damage Repair" ? 1 : 2)
                 .ThenBy(r => r.CreatedAt)
+                .ToList();
+        }
+
+        private async Task LoadInspectionsAsync()
+        {
+            var policies = await _db.FinePolicies.AsNoTracking()
+                .Where(p => p.InspectionEvery != null && p.InspectionEvery > 0)
+                .ToDictionaryAsync(p => p.ItemType, p => p.InspectionEvery!.Value);
+            if (policies.Count == 0) return;
+
+            var types = policies.Keys.ToList();
+            var items = await _db.Inventory.AsNoTracking()
+                .Where(i => types.Contains(i.Type))
+                .Select(i => new { i.Id, i.Name, i.Type, i.Status })
+                .ToListAsync();
+            var ids = items.Select(i => i.Id).ToList();
+            var lastInspections = (await _db.MaintenanceRequests.AsNoTracking()
+                    .Where(m => ids.Contains(m.ItemId) && m.RequestType == "Routine Inspection")
+                    .Select(m => new { m.ItemId, m.CreatedAt })
+                    .ToListAsync())
+                .GroupBy(m => m.ItemId)
+                .ToDictionary(g => g.Key, g => g.Max(m => m.CreatedAt));
+            var returns = await _db.Rentals.AsNoTracking()
+                .Where(r => ids.Contains(r.ItemId) && r.ReturnedDate != null)
+                .Select(r => new { r.ItemId, r.ReturnedDate })
+                .ToListAsync();
+
+            Inspections = items.Select(it =>
+                {
+                    int every = policies[it.Type];
+                    DateTime? last = lastInspections.TryGetValue(it.Id, out var d) ? d : null;
+                    int since = returns.Count(r => r.ItemId == it.Id && (last == null || r.ReturnedDate > last));
+                    return new InspectionRow(it.Id, it.Name, LabelOf(it.Type), it.Status ?? "",
+                                             every, since, Math.Max(every - since, 0), last);
+                })
+                .OrderBy(r => r.ReturnsUntilNext).ThenBy(r => r.ItemName)
                 .ToList();
         }
 
@@ -85,8 +126,7 @@ namespace Project.Pages.Staff
             string extra = "";
             if (status == "Replaced")
             {
-                // A new unit replaces the old one: close the item's other open requests
-                // and put the item back in service.
+               
                 var others = await _db.MaintenanceRequests
                     .Where(m => m.ItemId == request.ItemId && m.RequestId != request.RequestId
                              && OpenStatuses.Contains(m.Status))

@@ -100,7 +100,7 @@ else
             </div>
             <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
                 <button type="submit" class="btn btn-library" id="payBtn">Pay <span id="payTotal">@Model.Balance.ToString("C")</span></button>
-                <span class="report-meta">Class project demo: no card is charged and card details are not saved. Test card: 4242 4242 4242 4242.</span>
+
             </div>
         </section>
     </form>
@@ -151,7 +151,7 @@ else
         boxes.forEach(function (b) { b.addEventListener('change', update); });
         all.addEventListener('change', function () { boxes.forEach(function (b) { b.checked = all.checked; }); update(); });
 
-        // Card number in groups of four, expiry as MM/YY
+       
         var num = form.querySelector('[name="CardNumber"]');
         num.addEventListener('input', function () {
             num.value = num.value.replace(/\D/g, '').slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ');
@@ -162,7 +162,7 @@ else
             exp.value = d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d;
         });
 
-        form.addEventListener('submit', function () {   // no double payments
+        form.addEventListener('submit', function () {   
             btn.disabled = true;
             btn.textContent = 'Processing…';
         });

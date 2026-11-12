@@ -6,7 +6,7 @@
 
 <div class="staff-layout">
 
-    <!-- Left menu: every staff page, grouped -->
+   
     <aside class="staff-menu" aria-label="Staff menu">
         <p class="staff-menu-title">Circulation</p>
         <a asp-page="/Staff/StartCheckout">Check out</a>
@@ -71,6 +71,12 @@
                 </span>
             </a>
 
+            <a class="attention @(Model.BookDropWaiting > 0 ? "attention-warn" : "")" asp-page="/Staff/Returns" asp-route-DropBoxOnly="true">
+                <span class="attention-value">@Model.BookDropWaiting</span>
+                <span class="attention-label">in the book drop</span>
+                <span class="attention-note">@(Model.BookDropWaiting > 0 ? "Check in and inspect" : "Book drop is empty")</span>
+            </a>
+
             <a class="attention @(Model.OpenRoomSetupTasks > 0 ? "attention-warn" : "")" asp-page="/Staff/RoomSetupTasks">
                 <span class="attention-value">@Model.OpenRoomSetupTasks</span>
                 <span class="attention-label">room setup@(Model.OpenRoomSetupTasks == 1 ? "" : "s")</span>
@@ -98,7 +104,7 @@
 
 @section Scripts {
     <script>
-        // Greeting and date use the computer's own clock, so they're right on Render too
+     
         const dashboardGreeting = document.getElementById("staff-dashboard-greeting");
         const dashboardDate = document.getElementById("staff-dashboard-date");
         const dashboardDateFormat = new Intl.DateTimeFormat("en-US", {

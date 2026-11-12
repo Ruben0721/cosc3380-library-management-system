@@ -16,7 +16,7 @@
 @if (!string.IsNullOrEmpty(Model.Message))
 {
     <div class="alert alert-success alert-dismissible fade show" role="status">
-        <strong>Item returned.</strong> @Model.Message
+        @Model.Message
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
@@ -35,8 +35,12 @@
             <option value="false" selected="@(!Model.OverdueOnly)">All checked-out items</option>
             <option value="true" selected="@Model.OverdueOnly">Overdue items only</option>
         </select>
+        <select name="DropBoxOnly" aria-label="Book drop">
+            <option value="false" selected="@(!Model.DropBoxOnly)">Desk and book drop</option>
+            <option value="true" selected="@Model.DropBoxOnly">Book drop only (@Model.DropBoxCount)</option>
+        </select>
         <button type="submit" class="button button-primary">Search</button>
-        @if (!string.IsNullOrEmpty(Model.Search) || Model.OverdueOnly)
+        @if (!string.IsNullOrEmpty(Model.Search) || Model.OverdueOnly || Model.DropBoxOnly)
         {
             <a asp-page="/Staff/Returns">Clear</a>
         }
@@ -64,7 +68,13 @@
                     <td>@l.Category</td>
                     <td>@l.Borrower</td>
                     <td>@l.StartDate.ToString("MMM d, yyyy")</td>
-                    <td>@(l.DueDate?.ToString("MMM d, yyyy") ?? "—")</td>
+                    <td>
+                        @(l.DueDate?.ToString("MMM d, yyyy") ?? "—")
+                        @if (l.DroppedOffAt != null)
+                        {
+                            <span class="pill pill-ok d-inline-block mt-1">In book drop · @l.DroppedOffAt.Value.ToString("MMM d, h:mm tt")</span>
+                        }
+                    </td>
                     <td class="num">
                         @if (l.DaysOverdue > 0)
                         {
@@ -82,14 +92,26 @@
                             <input type="hidden" name="rentalId" value="@l.RentalId" />
                             <input type="hidden" name="Search" value="@Model.Search" />
                             <input type="hidden" name="OverdueOnly" value="@Model.OverdueOnly.ToString().ToLower()" />
+                            <input type="hidden" name="DropBoxOnly" value="@Model.DropBoxOnly.ToString().ToLower()" />
                             <select name="condition" class="form-select form-select-sm" style="width: auto;" aria-label="Condition">
                                 @foreach (var c in Project.Pages.Staff.ReturnsModel.Conditions)
                                 {
                                     <option value="@c">@c</option>
                                 }
                             </select>
-                            <button type="submit" class="btn btn-sm btn-library">Return</button>
+                            <button type="submit" class="btn btn-sm btn-library">@(l.DroppedOffAt != null ? "Check in" : "Return")</button>
                         </form>
+                        @if (l.DroppedOffAt != null)
+                        {
+                            <form method="post" asp-page-handler="NotInDropBox" class="text-end mt-1"
+                                  onsubmit="return confirm('This item was not in the book drop? It goes back to checked out.');">
+                                <input type="hidden" name="rentalId" value="@l.RentalId" />
+                                <input type="hidden" name="Search" value="@Model.Search" />
+                                <input type="hidden" name="OverdueOnly" value="@Model.OverdueOnly.ToString().ToLower()" />
+                                <input type="hidden" name="DropBoxOnly" value="@Model.DropBoxOnly.ToString().ToLower()" />
+                                <button type="submit" class="btn btn-link btn-sm p-0">Not in the book drop</button>
+                            </form>
+                        }
                     </td>
                 </tr>
             }
@@ -97,6 +119,7 @@
         <p style="font-size: 13px;">
             Good: item goes back to Available. Damaged: damage fee + repair request, item goes Under Repair.
             Lost: replacement cost is charged and the item is marked Lost. Overdue fines are added automatically.
+            Book-drop returns are dated when the member dropped them off, so the late fee stops then.
         </p>
     }
 </section>

@@ -84,3 +84,32 @@
         </p>
     }
 </section>
+
+<section>
+    <h2>Routine inspections (@Model.Inspections.Count(i => i.ReturnsUntilNext == 0) due now)</h2>
+    @if (Model.Inspections.Count == 0)
+    {
+        <p>No item categories have a routine inspection interval.</p>
+    }
+    else
+    {
+        <table class="results">
+            <tr><th>Item</th><th>Category</th><th>Item status</th><th class="num">Returns since last</th><th class="num">Returns until next</th><th>Last inspection</th></tr>
+            @foreach (var i in Model.Inspections)
+            {
+                <tr>
+                    <td>@i.ItemName</td>
+                    <td>@i.Category</td>
+                    <td>@i.ItemStatus</td>
+                    <td class="num">@i.ReturnsSinceLast of @i.Every</td>
+                    <td class="num">@if (i.ReturnsUntilNext == 0) { <span class="pill pill-warn">Due now</span> } else { @i.ReturnsUntilNext }</td>
+                    <td>@(i.LastInspection == null ? "Never" : i.LastInspection.Value.ToString("MMM d, yyyy"))</td>
+                </tr>
+            }
+        </table>
+        <p style="font-size: 13px;">
+            Each category is inspected after a set number of returns (see the <a asp-page="/Policies">borrowing &amp; fines policy</a>).
+            A Routine Inspection request opens automatically when an item reaches its interval.
+        </p>
+    }
+</section>

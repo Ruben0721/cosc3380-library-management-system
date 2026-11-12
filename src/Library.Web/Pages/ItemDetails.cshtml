@@ -70,5 +70,12 @@
 </div>
 
 <div style="margin-top: 1rem;">
-    <a class="button" href="javascript:history.back()">← Back</a>
+    @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
+    {
+        <a class="button" asp-page="/Inventory">← Back to inventory</a>
+    }
+    else
+    {
+        <a class="button" asp-page="/Search">← Back to catalog</a>
+    }
 </div>

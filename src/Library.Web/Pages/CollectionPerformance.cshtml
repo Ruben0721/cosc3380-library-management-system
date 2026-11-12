@@ -6,7 +6,7 @@
     double change = Model.PrevCheckouts == 0 ? 0
         : 100.0 * (Model.TotalCheckouts - Model.PrevCheckouts) / Model.PrevCheckouts;
 
-    // Links to the supporting records: the report's filters plus what a number was counted from
+    
     Dictionary<string, string> R(params string[] kv)
     {
         var d = new Dictionary<string, string>();
@@ -21,7 +21,7 @@
     }
     string ValueOf(string label) => Model.Types.Where(t => t.Label == label).Select(t => t.Value).FirstOrDefault() ?? label;
 
-    // Message for empty title lists: explain when the demand filter is the reason
+    
     string EmptyMessage(string normal) => string.IsNullOrEmpty(Model.DemandFilter)
         ? normal
         : $"No titles with \"{Model.DemandFilter}\" demand in this section for this period.";
@@ -144,45 +144,6 @@
             <li>@r</li>
         }
     </ol>
-</section>
-
-<!-- Performance by category -->
-<section class="report-section">
-    <h2>Performance by category</h2>
-    <table class="results">
-        <tr>
-            <th>Category</th><th class="num">Copies</th><th class="num">Available</th>
-            <th class="num">Under repair</th><th class="num">Checkouts</th>
-            <th class="num">Per copy</th><th class="num">Never borrowed</th>
-            <th class="num">vs. previous</th><th>Demand</th>
-        </tr>
-        @foreach (var c in Model.Categories)
-        {
-            double? catChange = c.PrevCheckouts == 0 ? null : 100.0 * (c.Checkouts - c.PrevCheckouts) / c.PrevCheckouts;
-            <tr>
-                <td>@c.Label</td>
-                <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies", "Category", c.Category)'>@c.Items</a></td>
-                <td class="num">@c.Available</td>
-                <td class="num">@c.UnderRepair</td>
-                <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "checkouts", "Category", c.Category)'>@c.Checkouts</a></td>
-                <td class="num">@c.PerItem.ToString("0.00")</td>
-                <td class="num"><a class="drill-num" asp-page="/CirculationRecords" asp-all-route-data='R("Show", "copies", "Category", c.Category, "Unborrowed", "true")'>@c.NeverPct.ToString("0")%</a></td>
-                <td class="num">@(catChange == null ? "—" : (catChange >= 0 ? "+" : "") + catChange.Value.ToString("0") + "%")</td>
-                <td><strong>@c.Demand</strong></td>
-            </tr>
-        }
-        <tr class="total">
-            <td>Total</td>
-            <td class="num">@Model.TotalCopies</td>
-            <td class="num">@Model.Categories.Sum(c => c.Available)</td>
-            <td class="num">@Model.Categories.Sum(c => c.UnderRepair)</td>
-            <td class="num">@Model.TotalCheckouts</td>
-            <td class="num">@Model.AvgPerItem.ToString("0.00")</td>
-            <td class="num">@((100 - Model.UtilizationPct).ToString("0"))%</td>
-            <td class="num">@(Model.PrevCheckouts == 0 ? "—" : (change >= 0 ? "+" : "") + change.ToString("0") + "%")</td>
-            <td></td>
-        </tr>
-    </table>
 </section>
 
 <!-- Monthly trend -->

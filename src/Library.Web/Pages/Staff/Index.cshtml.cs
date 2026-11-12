@@ -29,8 +29,9 @@ namespace Project.Pages.Staff
         public int OldestRepairDays { get; set; }
 
         // Pickups and holds
-        public int PickupsWaiting { get; set; }     // set aside at the desk (Status "Ready")
-        public int HoldsWaiting { get; set; }       // members waiting in line (Status "Pending")
+        public int PickupsWaiting { get; set; }     
+        public int HoldsWaiting { get; set; }       
+        public int BookDropWaiting { get; set; }   
 
         // Room setup
         public int OpenRoomSetupTasks { get; set; }
@@ -82,6 +83,7 @@ namespace Project.Pages.Staff
             // Items set aside at the desk, and members waiting in line
             PickupsWaiting = await _db.Holds.CountAsync(h => h.Status == "Ready");
             HoldsWaiting = await _db.Holds.CountAsync(h => h.Status == "Pending");
+            BookDropWaiting = await _db.Rentals.CountAsync(r => !r.IsReturned && r.DroppedOffAt != null);
 
             // Rooms to set up before confirmed reservations
             RoomSetupTasks = await (from task in _db.RoomSetupTasks.AsNoTracking()
