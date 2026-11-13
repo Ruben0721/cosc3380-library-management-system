@@ -4,19 +4,16 @@ using Project.Data;
 
 namespace Project.Pages
 {
-    // Shared rules for borrowing, used by the member Borrow page and the staff Pickups page.
-    // The database triggers (ValidateRentalLimit, ValidateRentalBeforeInsert) still have the
-    // final say on rental limits, availability and inactive members.
+   
     public static class Circulation
     {
-        // Every item is requested online and handed out at the circulation desk.
-        // To let members check out some types themselves instead, list them here (e.g. "book").
+       
         public static readonly string[] SelfCheckoutTypes = { };
 
-        public const decimal FineBlockLimit = 10.00m;      // unpaid fines above this block new loans
-        public const int MaxPickupReservations = 3;        // checkout requests waiting per member
-        public const int PickupDays = 2;                   // days to collect a request
-        public const int DefaultWaitlistLimit = 3;         // holds per member if no limit is set on their record
+        public const decimal FineBlockLimit = 10.00m;      
+        public const int MaxPickupReservations = 3;       
+        public const int PickupDays = 2;                  
+        public const int DefaultWaitlistLimit = 3;         
 
         public static bool NeedsPickup(string? type) => type == null || !SelfCheckoutTypes.Contains(type);
 
@@ -32,8 +29,30 @@ namespace Project.Pages
         public static async Task<decimal> UnpaidFinesAsync(LibraryDbContext db, int memberId) =>
             await db.Fines.Where(f => f.LibraryUserId == memberId && !f.IsPaid).SumAsync(f => (decimal?)f.Amount) ?? 0;
 
-        // Mark requests/holds whose pickup deadline has passed as Expired,
-        // then offer each freed copy to the next member waiting for that title.
+        public static async Task<decimal> AmountOwedAsync(LibraryDbContext db, int memberId)
+        {
+            decimal charged = await UnpaidFinesAsync(db, memberId);
+
+            var now = DateTime.Now;
+            var overdue = await (from r in db.Rentals
+                                 join i in db.Inventory on r.ItemId equals i.Id
+                                 where r.LibraryUserId == memberId && !r.IsReturned && r.EndDate != null
+                                 select new { r.EndDate, r.DroppedOffAt, i.Type }).ToListAsync();
+            if (overdue.Count == 0) return charged;
+
+            var policies = await db.FinePolicies.AsNoTracking().ToDictionaryAsync(p => p.ItemType);
+            decimal accruing = 0;
+            foreach (var o in overdue)
+            {
+                var asOf = (o.DroppedOffAt ?? now).Date;              // fee stops at drop-off
+                int days = (asOf - o.EndDate!.Value.Date).Days;          // same as MySQL DATEDIFF
+                if (days > 0 && o.Type != null && policies.TryGetValue(o.Type, out var p))
+                    accruing += Math.Min(days * p.DailyOverdueRate, p.OverdueCap);
+            }
+            return charged + accruing;
+        }
+
+    
         public static async Task ExpirePickupsAsync(LibraryDbContext db)
         {
             var now = DateTime.Now;
@@ -49,9 +68,7 @@ namespace Project.Pages
                 await PromoteNextHoldAsync(db, itemId);
         }
 
-        // The hold queue: if this copy is on the shelf and not set aside for anyone, give it to the
-        // member who has waited longest for the same title (same rule as trg_rental_return_hold).
-        // Returns the name of the member it was set aside for, or null.
+      
         public static async Task<string?> PromoteNextHoldAsync(LibraryDbContext db, int itemId)
         {
             var item = await db.Inventory.AsNoTracking()
@@ -81,7 +98,7 @@ namespace Project.Pages
                 .Select(u => u.FullName).FirstOrDefaultAsync();
         }
 
-        // How many holds this member may have waiting (from their Student or Faculty record).
+      
         public static async Task<int> WaitlistLimitAsync(LibraryDbContext db, int memberId)
         {
             var values = await db.Database.SqlQuery<int>(
@@ -90,8 +107,7 @@ namespace Project.Pages
             return values.FirstOrDefault(DefaultWaitlistLimit);
         }
 
-        // Create the loan and mark the copy Checked Out, in one transaction.
-        // Returns null on success, or the reason it was refused.
+      
         public static async Task<string?> CreateLoanAsync(LibraryDbContext db, int itemId, int memberId, string? type)
         {
             int loanDays = await LoanDaysAsync(db, type);
@@ -116,7 +132,7 @@ namespace Project.Pages
             }
         }
 
-        // Next Hold_ID in the H00001 format
+       
         public static async Task<string> NextHoldIdAsync(LibraryDbContext db)
         {
             var ids = await db.Holds.Select(h => h.HoldId).ToListAsync();

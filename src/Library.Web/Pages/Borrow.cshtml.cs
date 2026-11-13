@@ -25,7 +25,7 @@ namespace Project.Pages
         public string CategoryLabel { get; set; } = "";
         public int Copies { get; set; }
         public int CopiesAvailable { get; set; }
-        public int CopiesSetAside { get; set; }         
+        public int CopiesSetAside { get; set; }        
         public DateTime? NextDue { get; set; }          
         public int InLine { get; set; }                 
         public bool NeedsPickup { get; set; }
@@ -36,7 +36,7 @@ namespace Project.Pages
         public string? Blocked { get; set; }           
         public DateTime? MyLoanDue { get; set; }        
         public DateTime? MyPickupBy { get; set; }      
-        public int? MyPlaceInLine { get; set; }         
+        public int? MyPlaceInLine { get; set; }        
         public bool InReadingList { get; set; }
         public bool BlockedByFines { get; set; }
         public bool AtHoldLimit { get; set; }
@@ -74,7 +74,7 @@ namespace Project.Pages
             return Back();
         }
 
-        
+       
         public async Task<IActionResult> OnPostHoldAsync()
         {
             if (!await LoadAsync()) return NotFound();
@@ -129,7 +129,7 @@ namespace Project.Pages
             return Back();
         }
 
-        
+       
         public async Task<IActionResult> OnPostBorrowAsync()
         {
             if (!await LoadAsync()) return NotFound();
@@ -163,7 +163,7 @@ namespace Project.Pages
             }
             catch (DbUpdateException ex) when (ex.InnerException is MySqlException { SqlState: "45000" } rule)
             {
-                
+               
                 _db.Entry(hold).State = EntityState.Detached;
                 return rule.Message.Contains("hold limit", StringComparison.OrdinalIgnoreCase)
                     ? $"You've reached your limit of active requests and holds ({HoldLimit}). Pick up or cancel one from your account first."
@@ -171,7 +171,7 @@ namespace Project.Pages
             }
         }
 
-        
+       
         private async Task<bool> LoadAsync()
         {
             await Circulation.ExpirePickupsAsync(_db);
@@ -241,16 +241,16 @@ namespace Project.Pages
                 return true;
             }
 
-            decimal unpaid = await Circulation.UnpaidFinesAsync(_db, MemberId.Value);
-            if (unpaid > Circulation.FineBlockLimit)
+            decimal owed = await Circulation.AmountOwedAsync(_db, MemberId.Value);
+            if (owed > Circulation.FineBlockLimit)
             {
-                Blocked = $"You have {unpaid:C} in unpaid fines. Pay them online or at the desk before requesting or holding items.";
+                Blocked = $"You owe {owed:C} in fines and late fees (over the {Circulation.FineBlockLimit:C} limit). Pay your fines and return overdue items before requesting or holding items.";
                 BlockedByFines = true;
                 return true;
             }
 
             HoldLimit = await Circulation.WaitlistLimitAsync(_db, MemberId.Value);
-            
+            // Requests waiting for pickup (Ready) and holds in line (Pending) both count, same as the database rule
             int myActive = await _db.Holds.CountAsync(h => h.LibraryUserId == MemberId && (h.Status == "Pending" || h.Status == "Ready"));
             AtHoldLimit = myActive >= HoldLimit;
             return true;

@@ -1,6 +1,4 @@
-@* Pops up once per sign-in for students and faculty who have items ready for pickup or unpaid fines.
-   Add to Pages/Shared/_Layout.cshtml just before </body>, after the Bootstrap script:
-       <partial name="_LoginNotice" />                                              *@
+
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.EntityFrameworkCore
 @inject Project.Data.LibraryDbContext Db
@@ -41,14 +39,16 @@
 
     bool show = pickups.Count > 0 || fineCount > 0;
 
-    // Each sign-in gets a new cookie issue time, so the notice shows once per sign-in
+   
     string signInKey = "";
     if (show)
     {
         var auth = await Context.AuthenticateAsync();
         signInKey = $"{memberId}-{auth.Properties?.IssuedUtc?.UtcTicks ?? DateTime.UtcNow.Date.Ticks}";
     }
-    bool blocked = balance > Project.Pages.Circulation.FineBlockLimit;
+    
+    bool blocked = show && memberId != null
+        && await Project.Pages.Circulation.AmountOwedAsync(Db, memberId.Value) > Project.Pages.Circulation.FineBlockLimit;
 }
 @if (show)
 {

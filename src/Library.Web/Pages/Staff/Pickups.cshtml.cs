@@ -9,7 +9,7 @@ namespace Project.Pages.Staff
     public record PickupRow(string HoldId, int ItemId, string? ItemName, string Category, int MemberId,
                             string Member, DateTime Reserved, DateTime? Deadline, bool DueToday);
 
-   
+ 
     public class PickupsModel : PageModel
     {
         private readonly LibraryDbContext _db;
@@ -53,10 +53,10 @@ namespace Project.Pages.Staff
             }
 
             var type = await _db.Inventory.Where(i => i.Id == hold.ItemId).Select(i => i.Type).FirstOrDefaultAsync();
-            decimal unpaid = await Project.Pages.Circulation.UnpaidFinesAsync(_db, hold.LibraryUserId);
-            if (unpaid > Project.Pages.Circulation.FineBlockLimit)
+            decimal owed = await Project.Pages.Circulation.AmountOwedAsync(_db, hold.LibraryUserId);
+            if (owed > Project.Pages.Circulation.FineBlockLimit)
             {
-                Error = $"The member owes {unpaid:C} in unpaid fines. Take payment before handing out the item.";
+                Error = $"The member owes {owed:C} in fines and late fees. Take payment and collect overdue items before handing this out.";
                 return RedirectToPage();
             }
 
