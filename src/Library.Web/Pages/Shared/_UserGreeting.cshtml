@@ -1,0 +1,36 @@
+@using Microsoft.EntityFrameworkCore
+@inject Project.Data.LibraryDbContext Db
+@{
+    string? firstName = null;
+
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        // Use the users saved first name
+        if ((User.IsInRole("Staff") || User.IsInRole("Admin")) &&
+            int.TryParse(User.FindFirst("staff_id")?.Value, out var staffId))
+        {
+            firstName = await Db.StaffMembers.AsNoTracking()
+                .Where(s => s.StaffId == staffId)
+                .Select(s => s.FirstName)
+                .FirstOrDefaultAsync();
+        }
+        else if (int.TryParse(User.FindFirst("library_user_id")?.Value, out var borrowerId))
+        {
+            if (User.IsInRole("Student"))
+            {
+                firstName = await Db.Students.AsNoTracking()
+                    .Where(s => s.LibraryUserId == borrowerId)
+                    .Select(s => s.FirstName)
+                    .FirstOrDefaultAsync();
+            }
+            else if (User.IsInRole("Faculty"))
+            {
+                firstName = await Db.FacultyMembers.AsNoTracking()
+                    .Where(f => f.LibraryUserId == borrowerId)
+                    .Select(f => f.FirstName)
+                    .FirstOrDefaultAsync();
+            }
+        }
+    }
+}
+@(string.IsNullOrWhiteSpace(firstName) ? "Hi there" : $"Hi, {firstName.Trim()}")

@@ -44,7 +44,7 @@
                         <a asp-page="/Staff/Index">Staff Dashboard</a>
                     }
 
-                    <span>Signed in as @User.Identity.Name</span>
+                    <span><partial name="_UserGreeting" /></span>
                     <a class="signup-link" asp-page="/Account/Logout">Log Out</a>
                 }
                 else
