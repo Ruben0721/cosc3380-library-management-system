@@ -46,6 +46,15 @@
                 <div><dt>Name</dt><dd>@(Model.FullName ?? "Borrower record not linked")</dd></div>
                 <div><dt>Email</dt><dd>@Model.Email</dd></div>
                 <div><dt>Account role</dt><dd>@Model.Role</dd></div>
+            @if (Model.StudentNumber != null)
+            {
+                <div><dt>Student ID</dt><dd>@Model.StudentNumber</dd></div>
+            }
+            @if (Model.FacultyNumber != null)
+            {
+                <div><dt>Faculty ID</dt><dd>@Model.FacultyNumber</dd></div>
+            }
+            <div><dt>Member ID</dt><dd>@(Model.MemberId?.ToString() ?? "—")</dd></div>               
             </dl>
             <div class="account-security">
                 <h3 class="h5">Password</h3>

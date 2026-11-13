@@ -16,6 +16,9 @@ public class MyLibraryModel(LibraryDbContext db) : PageModel
     public string Email { get; private set; } = "";
     public string Role { get; private set; } = "";
     public string? FullName { get; private set; }
+    public int? MemberId { get; private set; }
+public string? StudentNumber { get; private set; }
+public string? FacultyNumber { get; private set; }
  
     public record Loan(string? Item, DateTime? Due, int DaysLate = 0, decimal Accruing = 0,
                        int RentalId = 0, bool CanDropOff = false, DateTime? DroppedOffAt = null);
@@ -55,6 +58,13 @@ public class MyLibraryModel(LibraryDbContext db) : PageModel
         FullName = await db.LibraryUsers.Where(u => u.LibraryUserId == borrowerId)
             .Select(u => u.FullName).SingleOrDefaultAsync();
         if (FullName == null) return Page();
+        MemberId = borrowerId;
+        StudentNumber = await db.Database
+            .SqlQuery<string>($"SELECT CAST(Student_ID AS CHAR) AS Value FROM Student WHERE LibraryUserId = {borrowerId}")
+            .FirstOrDefaultAsync();
+        FacultyNumber = await db.Database
+            .SqlQuery<string>($"SELECT CAST(faculty_id AS CHAR) AS Value FROM Faculty WHERE LibraryUserId = {borrowerId}")
+            .FirstOrDefaultAsync();
 
         var openLoans = await (from r in db.Rentals
                                where r.LibraryUserId == borrowerId && !r.IsReturned && r.ReturnedDate == null
