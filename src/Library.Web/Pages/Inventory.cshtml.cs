@@ -19,7 +19,8 @@ namespace Project.Pages
         [BindProperty(SupportsGet = true)] public string? Sort { get; set; }  
 
         public List<(string Value, string Label)> Types => LibraryOptions.Types;
-        public List<string> Statuses => LibraryOptions.Statuses;
+        public List<string> Statuses => LibraryOptions.Statuses.Concat(new[] { "Awaiting Pickup" }).ToList();
+        public HashSet<int> AwaitingPickupIds { get; set; } = new();
 
         public List<Inventory> Inventory { get; set; } = new();
 
@@ -35,8 +36,11 @@ namespace Project.Pages
             if (!string.IsNullOrEmpty(SelectedType))
                 query = query.Where(i => i.Type == SelectedType);
 
-            if (!string.IsNullOrEmpty(SelectedStatus))
-                query = query.Where(i => i.Status == SelectedStatus);
+            var reserved = _db.Holds.AsNoTracking().Where(h => h.Status == "Ready" && h.ItemId != null).Select(h => h.ItemId!.Value);
+            if (SelectedStatus == "Awaiting Pickup")
+                query = query.Where(i => reserved.Contains(i.Id));
+            else if (!string.IsNullOrEmpty(SelectedStatus))
+                query = query.Where(i => i.Status == SelectedStatus && !reserved.Contains(i.Id));
 
             query = Sort switch
             {
@@ -47,6 +51,8 @@ namespace Project.Pages
             };
 
             Inventory = await query.ToListAsync();
+            var ids = Inventory.Select(i => i.Id).ToList();
+            AwaitingPickupIds = (await reserved.Where(id => ids.Contains(id)).ToListAsync()).ToHashSet();
         }
         }
 
