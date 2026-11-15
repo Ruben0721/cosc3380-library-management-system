@@ -147,5 +147,19 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
+// Images are stored in MySQL, so covers survive app redeployments.
+app.MapGet("/book-covers/{itemId:int}", async (int itemId, LibraryDbContext db) =>
+{
+    var cover = await db.Books.AsNoTracking()
+        .Where(b => b.ItemId == itemId)
+        .Select(b => new { b.CoverImage, b.CoverImageContentType })
+        .FirstOrDefaultAsync();
+    if (cover?.CoverImage == null || cover.CoverImage.Length == 0 ||
+        cover.CoverImageContentType is not ("image/jpeg" or "image/png" or "image/webp"))
+        return Results.NotFound();
+    return Results.File(cover.CoverImage, cover.CoverImageContentType);
+});
+
+
 
 app.Run();
