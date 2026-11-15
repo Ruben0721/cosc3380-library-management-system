@@ -31,16 +31,26 @@ else
     <div class="table-responsive">
         <table class="table">
             <thead>
-                <tr><th scope="col">Type</th><th scope="col">Name</th><th scope="col">Details</th><th scope="col">Status</th><th scope="col">Barcode</th></tr>
+                <tr><th scope="col">Cover</th><th scope="col">Type</th><th scope="col">Name</th><th scope="col">Details</th><th scope="col">Status</th><th scope="col">Barcode</th></tr>
             </thead>
             <tbody>
             @foreach (var item in Model.Results)
             {
                 <tr>
+                    <td>
+                        @if (item.Book?.CoverImage?.Length > 0)
+                        {
+                            <img loading="lazy" src="/book-covers/@item.Id" alt="Cover of @item.Name" style="width:54px;height:76px;object-fit:contain" />
+                        }
+                        else if (item.Book != null)
+                        {
+                            <span class="text-muted">No cover</span>
+                        }
+                    </td>
                     <td>@item.Type</td>
                     <td><a asp-page="/ItemDetails" asp-route-id="@item.Id">@item.Name</a></td>
                     <td>@item.DetailsSummary()</td>
-                    <td>@item.Status</td>
+                    <td>@(Model.AwaitingPickupIds.Contains(item.Id) ? "Awaiting Pickup" : item.Status)</td>
                     <td>@item.barcode</td>
                 </tr>
             }
