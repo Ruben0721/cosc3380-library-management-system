@@ -15,6 +15,10 @@ namespace Project.Models
         [Required, StringLength(20)]
         public string ISBN { get; set; }
 
+        public byte[]? CoverImage { get; set; }
+        [StringLength(30)]
+        public string? CoverImageContentType { get; set; }
+
         public Inventory Inventory { get; set; }
     }
 }
