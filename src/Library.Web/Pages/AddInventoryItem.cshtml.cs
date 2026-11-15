@@ -21,6 +21,9 @@ namespace Project.Pages
         public Laptops Laptop { get; set; } = new();
 
         public Books Book { get; set; } = new();
+        [BindProperty] public IFormFile? CoverUpload { get; set; }
+        [BindProperty] public bool RemoveCover { get; set; }
+        public bool HasCover => Book.CoverImage?.Length > 0;
 
         [BindProperty(SupportsGet = true)]
         public int? ItemId { get; set; }
@@ -118,6 +121,28 @@ namespace Project.Pages
                 return Page();
             }
 
+            if (CoverUpload != null)
+            {
+                if (CoverUpload.Length == 0 || CoverUpload.Length > 2 * 1024 * 1024)
+                {
+                    ModelState.AddModelError(nameof(CoverUpload), "The cover must be 2 MB or less.");
+                    return Page();
+                }
+                await using var stream = CoverUpload.OpenReadStream();
+                var bytes = new byte[(int)CoverUpload.Length];
+                await stream.ReadExactlyAsync(bytes);
+                bool jpeg = bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
+                bool png = bytes.Length >= 8 && bytes.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+                bool webp = bytes.Length >= 12 && bytes.AsSpan(0, 4).SequenceEqual("RIFF"u8) && bytes.AsSpan(8, 4).SequenceEqual("WEBP"u8);
+                if (!jpeg && !png && !webp)
+                {
+                    ModelState.AddModelError(nameof(CoverUpload), "Upload a JPEG, PNG, or WebP image.");
+                    return Page();
+                }
+                Book.CoverImage = bytes;
+                Book.CoverImageContentType = jpeg ? "image/jpeg" : png ? "image/png" : "image/webp";
+            }
+
             if (ItemId.HasValue)
             {
                 var existing = await GetExistingItemAsync();
@@ -141,6 +166,8 @@ namespace Project.Pages
                 existing.Book.PublicationYear = Book.PublicationYear;
                 existing.Book.BookLanguage = Book.BookLanguage;
                 existing.Book.ISBN = Book.ISBN;
+                if (RemoveCover) { existing.Book.CoverImage = null; existing.Book.CoverImageContentType = null; }
+                if (Book.CoverImage != null) { existing.Book.CoverImage = Book.CoverImage; existing.Book.CoverImageContentType = Book.CoverImageContentType; }
 
 
 
