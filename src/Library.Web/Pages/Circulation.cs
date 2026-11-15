@@ -139,6 +139,17 @@ namespace Project.Pages
             await using var tx = await db.Database.BeginTransactionAsync();
             try
             {
+                var locked = await db.Database.SqlQueryRaw<int>(
+                    "SELECT Id AS Value FROM Inventory WHERE Id = {0} AND Status = 'Available' FOR UPDATE", itemId)
+                    .ToListAsync();
+                var reservedForMember = await db.Holds.AnyAsync(h =>
+                    h.ItemId == itemId && h.Status == "Ready" && h.LibraryUserId == memberId);
+                if (locked.Count == 0 ||
+                    await db.Holds.AnyAsync(h => h.ItemId == itemId && h.Status == "Ready" && h.LibraryUserId != memberId))
+                {
+                    await tx.RollbackAsync();
+                    return "This copy is reserved for pickup or otherwise unavailable.";
+                }
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"INSERT INTO Rentals (ItemId, LibraryUserId, StartDate, EndDate, IsReturned) VALUES ({itemId}, {memberId}, {start}, {due}, b'0')");
                 await db.Database.ExecuteSqlInterpolatedAsync(
