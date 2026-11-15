@@ -22,7 +22,7 @@
 </form>
 @if (Model.SelectedType == "book")
 {
-    <form method="post" asp-page-handler="SaveBook" asp-route-selectedType="book">
+    <form method="post" enctype="multipart/form-data" asp-page-handler="SaveBook" asp-route-selectedType="book">
         <div asp-validation-summary="All" class="text-danger"></div>
         <input type="hidden" asp-for="ItemId" />
         <input type="hidden" asp-for="SelectedType" />
@@ -74,6 +74,16 @@
             <span asp-validation-for="inventoryItem.barcode" class="text-danger"></span>
         </div>
 
+        <div class="mb-3">
+            <label asp-for="CoverUpload" class="form-label">Book cover (JPEG, PNG or WebP, max 2 MB)</label>
+            @if (Model.HasCover && Model.ItemId.HasValue)
+            {
+                <div class="mb-2"><img src="/book-covers/@Model.ItemId" alt="Current cover for @Model.Book.Title" style="max-height:180px;max-width:140px;object-fit:contain" /></div>
+                <label class="form-check-label"><input asp-for="RemoveCover" class="form-check-input" /> Remove existing cover</label>
+            }
+            <input asp-for="CoverUpload" type="file" accept="image/jpeg,image/png,image/webp" class="form-control" />
+            <span asp-validation-for="CoverUpload" class="text-danger"></span>
+        </div>
         <button type="submit" class="btn btn-primary">Save</button>
         <a asp-page="Inventory" class="btn btn-secondary">Cancel</a>
     </form>
