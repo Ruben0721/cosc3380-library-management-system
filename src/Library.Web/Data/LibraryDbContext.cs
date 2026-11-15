@@ -42,6 +42,7 @@ namespace Project.Data
             modelBuilder.Entity<Rental>().ToTable("Rentals");
             modelBuilder.Entity<Books>().HasKey(x => x.ItemId);
             modelBuilder.Entity<Books>().Property(x => x.ItemId).ValueGeneratedNever();
+            modelBuilder.Entity<Books>().Property(x => x.CoverImage).HasColumnType("mediumblob");
             modelBuilder.Entity<Books>().HasOne(x => x.Inventory).WithOne(i => i.Book).HasForeignKey<Books>(x => x.ItemId);
 
             modelBuilder.Entity<HeadPhones>().HasKey(x => x.ItemId);
