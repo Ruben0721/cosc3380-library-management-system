@@ -155,15 +155,30 @@ namespace Project.Pages
                 ReadyDate = status == "Ready" ? DateTime.Now : null,
                 PickupDeadline = deadline
             };
-            _db.Holds.Add(hold);
+            await using var tx = await _db.Database.BeginTransactionAsync();
             try
             {
+                // Lock the physical copy, serializing competing pickup requests.
+                if (status == "Ready")
+                {
+                    var rows = await _db.Database.SqlQueryRaw<int>(
+                        "SELECT Id AS Value FROM Inventory WHERE Id = {0} AND Status = 'Available' FOR UPDATE", copyId)
+                        .ToListAsync();
+                    if (rows.Count == 0 || await _db.Holds.AnyAsync(h => h.ItemId == copyId && h.Status == "Ready"))
+                    {
+                        await tx.RollbackAsync();
+                        return "That copy is already reserved or unavailable. Please place a hold instead.";
+                    }
+                }
+                _db.Holds.Add(hold);
                 await _db.SaveChangesAsync();
+                await tx.CommitAsync();
                 return null;
             }
             catch (DbUpdateException ex) when (ex.InnerException is MySqlException { SqlState: "45000" } rule)
             {
                
+                await tx.RollbackAsync();
                 _db.Entry(hold).State = EntityState.Detached;
                 return rule.Message.Contains("hold limit", StringComparison.OrdinalIgnoreCase)
                     ? $"You've reached your limit of active requests and holds ({HoldLimit}). Pick up or cancel one from your account first."
