@@ -9,6 +9,10 @@
     <p class="eyebrow">@i.Type</p>
     <h1>@i.Name</h1>
 </section>
+@if (i.Book?.CoverImage?.Length > 0)
+{
+    <img src="/book-covers/@i.Id" alt="Cover of @i.Name" style="max-height:280px;max-width:210px;object-fit:contain;margin:1rem 0" />
+}
 @if (TempData["Message"] != null)
 {
     <p style="color: #2f6b3a; font-weight: bold;">@TempData["Message"]</p>
@@ -16,7 +20,7 @@
 
 <section class="overview">
     <table class="hours">
-        <tr><th>Status</th><td>@i.Status</td></tr>
+        <tr><th>Status</th><td>@(Model.AwaitingPickup ? "Awaiting Pickup" : i.Status)</td></tr>
         <tr><th>Barcode</th><td>@i.barcode</td></tr>
 
         @if (i.Book != null)
@@ -53,7 +57,7 @@
     </table>
 </section>
 <div style="display: flex; justify-content: space-between; align-items: center;">
-    @if (i.Status == "Available" && (User.IsInRole("Staff") || User.IsInRole("Admin")))
+    @if (i.Status == "Available" && !Model.AwaitingPickup && (User.IsInRole("Staff") || User.IsInRole("Admin")))
     {
         <a class="button button-primary" asp-page="/Checkout" asp-route-itemId="@i.Id">Check out</a>
     }
@@ -64,7 +68,7 @@
     else
     {
         <a class="btn btn-library" asp-page="/Borrow" asp-route-ItemId="@i.Id">
-            @(i.Status == "Available" ? "Request checkout" : "Place hold / save")
+            @(i.Status == "Available" && !Model.AwaitingPickup ? "Request checkout" : "Place hold / save")
         </a>
     }
 </div>
