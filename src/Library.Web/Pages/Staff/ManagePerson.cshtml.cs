@@ -119,7 +119,8 @@ namespace Project.Pages.Staff
                 }
 
                 _account = await _db.UserAccounts
-                    .SingleOrDefaultAsync(a => a.StaffId == staffId);
+                    .SingleOrDefaultAsync(a => a.LibraryUserId == _staff.LibraryUserId);
+                _borrower = _staff.Borrower;
 
                 if (_account != null &&
                     _account.Role != "Staff" &&
@@ -153,8 +154,7 @@ namespace Project.Pages.Staff
                         a.LibraryUserId == _faculty.LibraryUserId);
 
                 if (_account != null &&
-                    (_account.Role != "Faculty" ||
-                     _account.StaffId != null))
+                    _account.Role != "Faculty")
                 {
                     return "This borrower already has a different account " +
                            "type. This form will not convert that account.";
@@ -196,18 +196,12 @@ namespace Project.Pages.Staff
                 return Page();
             }
 
-            Input.FirstName = IsStaff
-                ? _staff!.FirstName
-                : _faculty!.FirstName;
-
-            Input.LastName = IsStaff
-                ? _staff!.LastName
-                : _faculty!.LastName;
-
-            Input.Email = _account?.Email ?? _staff?.Email ?? "";
+            Input.FirstName = _borrower!.FirstName;
+            Input.LastName = _borrower.LastName;
+            Input.Email = _account?.Email ?? "";
 
             Input.Position = IsStaff
-                ? _staff!.Role
+                ? _staff!.JobTitle
                 : _faculty!.Position;
 
             Input.StartDate = _staff?.StartDate;
@@ -342,25 +336,7 @@ namespace Project.Pages.Staff
                     return Page();
                 }
 
-                if (IsStaff)
-                {
-                    int currentStaffId = _staff?.StaffId ?? 0;
-
-                    bool staffEmailTaken = await _db.StaffMembers.AnyAsync(s =>
-                        s.Email == Input.Email &&
-                        s.StaffId != currentStaffId);
-
-                    if (staffEmailTaken)
-                    {
-                        ModelState.AddModelError(
-                            "Input.Email",
-                            "That email belongs to another Staff record. " +
-                            "Select the existing person from the directory.");
-
-                        return Page();
-                    }
-                }
-                else if (IsNew &&
+                if (!IsStaff && IsNew &&
                          await _db.FacultyMembers.AnyAsync(f =>
                              f.FacultyId == Input.FacultyId))
                 {
@@ -372,61 +348,37 @@ namespace Project.Pages.Staff
                     return Page();
                 }
 
+                if (IsNew)
+                {
+                    _borrower = new LibraryUser { IsActive = true };
+                    _db.LibraryUsers.Add(_borrower);
+                }
+                _borrower!.FirstName = Input.FirstName;
+                _borrower.LastName = Input.LastName;
+                await _db.SaveChangesAsync();
+
                 if (IsStaff)
                 {
                     if (IsNew)
                     {
-                        _staff = new StaffMember
-                        {
-                            IsActive = true
-                        };
-
+                        _staff = new StaffMember { Borrower = _borrower, IsActive = true };
                         _db.StaffMembers.Add(_staff);
                     }
-
-                    _staff!.FirstName = Input.FirstName;
-                    _staff.LastName = Input.LastName;
-                    _staff.Role = Input.Position!;
+                    _staff!.JobTitle = Input.Position!;
                     _staff.StartDate = Input.StartDate!.Value.Date;
-                    _staff.Email = Input.Email;
-
-                    // EF saves the borrower and links its generated ID in this transaction
-                    _staff.Borrower ??= new LibraryUser { IsActive = _staff.IsActive };
-                    _staff.Borrower.FullName = $"{_staff.FirstName} {_staff.LastName}";
                 }
                 else
                 {
                     if (IsNew)
                     {
-                        _borrower = new LibraryUser
-                        {
-                            FullName =
-                                $"{Input.FirstName} {Input.LastName}",
-                            IsActive = true
-                        };
-
-                        _db.LibraryUsers.Add(_borrower);
-
-                        // Obtain the generated borrower ID.
-                        await _db.SaveChangesAsync();
-
                         _faculty = new FacultyMember
                         {
-                            FacultyId = Input.FacultyId!,
-                            LibraryUserId = _borrower.LibraryUserId,
-                            RentalLimit = 10,
-                            WaitlistLimit = 5
+                            FacultyId = Input.FacultyId!, Borrower = _borrower,
+                            RentalLimit = 10, WaitlistLimit = 5
                         };
-
                         _db.FacultyMembers.Add(_faculty);
                     }
-
-                    _faculty!.FirstName = Input.FirstName;
-                    _faculty.LastName = Input.LastName;
-                    _faculty.Position = Input.Position;
-
-                    _borrower!.FullName =
-                        $"{Input.FirstName} {Input.LastName}";
+                    _faculty!.Position = Input.Position;
                 }
 
                 // Save profile changes and obtain a new Staff ID if needed.
@@ -437,10 +389,7 @@ namespace Project.Pages.Staff
                     _account = new UserAccount
                     {
                         IsEnabled = true,
-                        StaffId = IsStaff ? _staff!.StaffId : null,
-                        LibraryUserId = IsStaff
-                            ? null
-                            : _faculty!.LibraryUserId,
+                        LibraryUserId = _borrower.LibraryUserId,
                         FailedLoginAttempts = 0,
                         LockoutUntilUtc = null
                     };

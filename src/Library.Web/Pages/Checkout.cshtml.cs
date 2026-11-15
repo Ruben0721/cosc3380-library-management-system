@@ -87,22 +87,22 @@ namespace Project.Pages
             var id = BorrowerId.Trim();
 
             // Is it a Student ID?
-            var student = await _db.Students.AsNoTracking().FirstOrDefaultAsync(s => s.StudentId == id);
+            var student = await _db.Students.AsNoTracking().Include(s => s.Borrower).FirstOrDefaultAsync(s => s.StudentId == id);
             if (student != null)
             {
                 LibraryUserId = student.LibraryUserId;
-                BorrowerName = $"{student.FirstName} {student.LastName}";
+                BorrowerName = student.Borrower.FullName;
                 BorrowerType = "Student";
                 Limit = 5;
             }
             else
             {
                
-                var faculty = await _db.FacultyMembers.AsNoTracking().FirstOrDefaultAsync(f => f.FacultyId == id);
+                var faculty = await _db.FacultyMembers.AsNoTracking().Include(f => f.Borrower).FirstOrDefaultAsync(f => f.FacultyId == id);
                 if (faculty != null)
                 {
                     LibraryUserId = faculty.LibraryUserId;
-                    BorrowerName = $"{faculty.FirstName} {faculty.LastName}";
+                    BorrowerName = faculty.Borrower.FullName;
                     BorrowerType = "Faculty";
                     Limit = faculty.RentalLimit ?? 10;
                 }

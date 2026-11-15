@@ -59,22 +59,14 @@ namespace Project.Auth
                 string cookieBorrowerId =
                     principal?.FindFirstValue("library_user_id") ?? "";
 
-                string cookieStaffId =
-                    principal?.FindFirstValue("staff_id") ?? "";
-
-                string currentBorrowerId =
-                    account.LibraryUserId?.ToString() ?? "";
-
-                string currentStaffId =
-                    account.StaffId?.ToString() ?? "";
+                string currentBorrowerId = account.LibraryUserId.ToString();
 
                 // A reset or account change means the user needs to log in again
                 bool accountChanged =
                     !AccountAccessRules.HasCurrentSessionVersion(principal, account) ||
                     cookieRole != account.Role ||
                     cookieEmail != account.Email ||
-                    cookieBorrowerId != currentBorrowerId ||
-                    cookieStaffId != currentStaffId;
+                    cookieBorrowerId != currentBorrowerId;
 
                 if (accountChanged)
                 {

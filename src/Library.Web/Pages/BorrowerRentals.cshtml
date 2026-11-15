@@ -10,9 +10,9 @@
     <p>
         <strong>Student</strong>
         · ID @Model.StudentInfo.StudentId
-        @if (!string.IsNullOrEmpty(Model.StudentInfo.Email))
+        @if (!string.IsNullOrEmpty(Model.BorrowerEmail))
         {
-            <span>· @Model.StudentInfo.Email</span>
+            <span>· @Model.BorrowerEmail</span>
         }
         · Registered @Model.StudentInfo.RegistrationDate.ToString("MMM d, yyyy")
     </p>

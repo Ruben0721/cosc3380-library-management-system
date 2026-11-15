@@ -4,6 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Project.Data;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using MySqlConnector;
+using Project.Auth;
+using Project.Models;
 
 namespace Project.Pages.Account;
 
@@ -12,6 +18,20 @@ namespace Project.Pages.Account;
 public class MyLibraryModel(LibraryDbContext db) : PageModel
 {
     public string ActiveTab { get; private set; } = "overview";
+    public bool IsEditing { get; private set; }
+
+    [BindProperty] public ProfileInput Profile { get; set; } = new();
+
+    public class ProfileInput
+    {
+        [Required, StringLength(30), Display(Name = "First name")]
+        public string FirstName { get; set; } = "";
+        [Required, StringLength(30), Display(Name = "Last name")]
+        public string LastName { get; set; } = "";
+        [Required, EmailAddress, StringLength(255)]
+        public string Email { get; set; } = "";
+        public ContactInput Contact { get; set; } = new();
+    }
 
     public string Email { get; private set; } = "";
     public string Role { get; private set; } = "";
@@ -43,7 +63,7 @@ public string? FacultyNumber { get; private set; }
     public List<Loan> OverdueLoans => Loans.Where(l => l.DaysLate > 0).ToList();
     public decimal AccruingTotal => Loans.Sum(l => l.Accruing);
 
-    public async Task<IActionResult> OnGetAsync(string? tab)
+    public async Task<IActionResult> OnGetAsync(string? tab, bool edit = false)
     {
        
         ActiveTab = tab switch
@@ -51,6 +71,7 @@ public string? FacultyNumber { get; private set; }
             "checkouts" or "requests" or "readinglist" or "fines" or "personal" => tab,
             _ => "overview"
         };
+        IsEditing = ActiveTab == "personal" && edit;
 
         var borrowerId = await LoadAccountAsync();
         if (borrowerId == -1) return Challenge();
@@ -65,6 +86,20 @@ public string? FacultyNumber { get; private set; }
         FacultyNumber = await db.Database
             .SqlQuery<string>($"SELECT CAST(faculty_id AS CHAR) AS Value FROM Faculty WHERE LibraryUserId = {borrowerId}")
             .FirstOrDefaultAsync();
+
+        if (ActiveTab == "personal")
+        {
+            if (HttpMethods.IsGet(Request.Method))
+            {
+                var person = await db.LibraryUsers.AsNoTracking().SingleAsync(u => u.LibraryUserId == borrowerId);
+                Profile = new ProfileInput
+                {
+                    FirstName = person.FirstName, LastName = person.LastName, Email = Email,
+                    Contact = ContactInput.FromPerson(person)
+                };
+            }
+            return Page();
+        }
 
         var openLoans = await (from r in db.Rentals
                                where r.LibraryUserId == borrowerId && !r.IsReturned && r.ReturnedDate == null
@@ -125,6 +160,58 @@ public string? FacultyNumber { get; private set; }
     }
 
    
+    public async Task<IActionResult> OnPostSavePersonalAsync()
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
+            return Challenge();
+        if (!ModelState.IsValid) return await OnGetAsync("personal", edit: true);
+
+        try
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            var accounts = await db.UserAccounts.FromSqlInterpolated(
+                $"SELECT * FROM UserAccount WHERE AccountId = {accountId} FOR UPDATE").ToListAsync();
+            var account = accounts.SingleOrDefault();
+            if (account == null || !AccountAccessRules.HasCurrentSessionVersion(User, account) ||
+                !await AccountAccessRules.CanSignInAsync(db, account))
+                return Challenge();
+
+            var email = Profile.Email.Trim();
+            var normalizedEmail = email.ToUpperInvariant();
+            if (await db.UserAccounts.AnyAsync(a => a.AccountId != accountId && a.NormalizedEmail == normalizedEmail))
+            {
+                ModelState.AddModelError("Profile.Email", "That email address is already in use.");
+                return await OnGetAsync("personal", edit: true);
+            }
+
+            var person = await db.LibraryUsers.SingleAsync(u => u.LibraryUserId == account.LibraryUserId);
+            person.FirstName = Profile.FirstName.Trim();
+            person.LastName = Profile.LastName.Trim();
+            Profile.Contact.ApplyTo(person);
+            bool emailChanged = account.Email != email;
+            account.Email = email;
+            account.NormalizedEmail = normalizedEmail;
+            if (emailChanged) account.SessionVersion = checked(account.SessionVersion + 1);
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            if (emailChanged)
+            {
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                TempData["ProfileChangedMessage"] = "Your details were saved. Log in using your updated email address and existing password.";
+                return RedirectToPage("/Account/Login");
+            }
+            Message = "Your personal information was saved.";
+            return RedirectToPage(new { tab = "personal" });
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is MySqlException { Number: 1062 })
+        {
+            ModelState.AddModelError("Profile.Email", "That email address is already in use.");
+            db.ChangeTracker.Clear();
+            return await OnGetAsync("personal", edit: true);
+        }
+    }
+
     public async Task<IActionResult> OnPostDropOffAsync(int rentalId)
     {
         var borrowerId = await LoadAccountAsync();
@@ -158,17 +245,13 @@ public string? FacultyNumber { get; private set; }
             return -1;
 
         var account = await db.UserAccounts.Where(a => a.AccountId == accountId && a.IsEnabled)
-            .Select(a => new { a.Email, a.Role, a.StaffId, a.LibraryUserId })
+            .Select(a => new { a.Email, a.Role, a.LibraryUserId })
             .SingleOrDefaultAsync();
         if (account == null) return -1;
 
         Email = account.Email;
         Role = account.Role;
-        // Staff/admins have their borrower link on the Staff record
-        return account.StaffId.HasValue
-            ? await db.StaffMembers.Where(s => s.StaffId == account.StaffId)
-                .Select(s => s.LibraryUserId).SingleOrDefaultAsync()
-            : account.LibraryUserId;
+        return account.LibraryUserId;
     }
 
    

@@ -41,10 +41,37 @@
     {
         <section class="library-account-panel">
             <h2 class="h4">Personal Info</h2>
-            <p>Review the details linked to your library account.</p>
+            @if (!Model.IsEditing)
+            {
             <dl class="account-details">
                 <div><dt>Name</dt><dd>@(Model.FullName ?? "Borrower record not linked")</dd></div>
                 <div><dt>Email</dt><dd>@Model.Email</dd></div>
+                <div><dt>Phone number</dt><dd>@(Model.Profile.Contact.PhoneNumber ?? "Not provided")</dd></div>
+                <div>
+                    <dt>Address</dt>
+                    <dd>
+                        @{
+                            var address = new[] {
+                                Model.Profile.Contact.AddressLine1,
+                                Model.Profile.Contact.AddressLine2,
+                                string.Join(", ", new[] { Model.Profile.Contact.City, Model.Profile.Contact.State }
+                                    .Where(value => !string.IsNullOrWhiteSpace(value))),
+                                Model.Profile.Contact.PostalCode
+                            }.Where(value => !string.IsNullOrWhiteSpace(value)).ToArray();
+                        }
+                        @if (address.Length == 0)
+                        {
+                            <span>Not provided</span>
+                        }
+                        else
+                        {
+                            @foreach (var line in address)
+                            {
+                                <span class="d-block">@line</span>
+                            }
+                        }
+                    </dd>
+                </div>
                 <div><dt>Account role</dt><dd>@Model.Role</dd></div>
             @if (Model.StudentNumber != null)
             {
@@ -56,6 +83,39 @@
             }
             <div><dt>Member ID</dt><dd>@(Model.MemberId?.ToString() ?? "—")</dd></div>               
             </dl>
+                @if (Model.FullName != null)
+                {
+                    <a asp-page="/Account/MyLibrary" asp-route-tab="personal" asp-route-edit="true"
+                       class="btn btn-library mb-4">Edit</a>
+                }
+            }
+            @if (Model.IsEditing && Model.FullName != null)
+            {
+                <p>Update your name and contact details. Changing your email will require you to sign in again with the new address.</p>
+                <form method="post" asp-page-handler="SavePersonal" class="mb-4">
+                    <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Profile.FirstName" class="form-label"></label>
+                            <input asp-for="Profile.FirstName" class="form-control" autocomplete="given-name" maxlength="30" />
+                            <span asp-validation-for="Profile.FirstName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Profile.LastName" class="form-label"></label>
+                            <input asp-for="Profile.LastName" class="form-control" autocomplete="family-name" maxlength="30" />
+                            <span asp-validation-for="Profile.LastName" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Profile.Email" class="form-label"></label>
+                            <input asp-for="Profile.Email" class="form-control" autocomplete="email" maxlength="255" />
+                            <span asp-validation-for="Profile.Email" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <partial name="_ContactFields" for="Profile.Contact" />
+                    <button type="submit" class="btn btn-library">Save changes</button>
+                    <a asp-page="/Account/MyLibrary" asp-route-tab="personal" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            }
             <div class="account-security">
                 <h3 class="h5">Password</h3>
                 <p>Change your password using your current password and a new password of at least 12 characters. After a successful change, you will need to sign in again.</p>
@@ -345,3 +405,7 @@
         }
     }
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

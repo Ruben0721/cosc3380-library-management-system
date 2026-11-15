@@ -60,6 +60,8 @@
                 <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
             </div>
 
+            <partial name="_ContactFields" for="Input.Contact" />
+
             <button type="submit" class="btn btn-primary">
                 Create student account
             </button>

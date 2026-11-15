@@ -31,6 +31,7 @@ namespace Project.Pages.Account
 
         public class RegistrationInput
         {
+            public ContactInput Contact { get; set; } = new();
             [Required]
             [StringLength(30)]
             [Display(Name = "First name")]
@@ -118,13 +119,14 @@ namespace Project.Pages.Account
 
                 var borrower = new LibraryUser
                 {
-                    FullName =
-                        $"{Input.FirstName.Trim()} {Input.LastName.Trim()}",
+                    FirstName = Input.FirstName.Trim(),
+                    LastName = Input.LastName.Trim(),
                     IsActive = true,
                     UserStatus = null
                 };
 
                 _db.LibraryUsers.Add(borrower);
+                Input.Contact.ApplyTo(borrower);
 
                 // MySQL generates the ID
                 await _db.SaveChangesAsync();
@@ -133,10 +135,7 @@ namespace Project.Pages.Account
                 var student = new Student
                 {
                     StudentId = Input.StudentId,
-                    FirstName = Input.FirstName.Trim(),
-                    LastName = Input.LastName.Trim(),
                     RegistrationDate = DateTime.UtcNow,
-                    Email = email,
                     LibraryUserId = borrower.LibraryUserId
                 };
 
@@ -147,8 +146,7 @@ namespace Project.Pages.Account
                     NormalizedEmail = normalizedEmail,
                     Role = "Student",
                     IsEnabled = true,
-                    LibraryUserId = borrower.LibraryUserId,
-                    StaffId = null
+                    LibraryUserId = borrower.LibraryUserId
                 };
 
                 var passwordHasher = new PasswordHasher<UserAccount>();

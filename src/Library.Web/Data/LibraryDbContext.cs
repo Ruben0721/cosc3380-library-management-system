@@ -30,6 +30,15 @@ namespace Project.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Student>().HasOne(s => s.Borrower).WithOne()
+                .HasForeignKey<Student>(s => s.LibraryUserId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<FacultyMember>().HasOne(f => f.Borrower).WithOne()
+                .HasForeignKey<FacultyMember>(f => f.LibraryUserId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<StaffMember>().HasOne(s => s.Borrower).WithOne()
+                .HasForeignKey<StaffMember>(s => s.LibraryUserId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<UserAccount>().HasOne(a => a.Borrower).WithOne()
+                .HasForeignKey<UserAccount>(a => a.LibraryUserId).OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Rental>().ToTable("Rentals");
             modelBuilder.Entity<Books>().HasKey(x => x.ItemId);
             modelBuilder.Entity<Books>().Property(x => x.ItemId).ValueGeneratedNever();

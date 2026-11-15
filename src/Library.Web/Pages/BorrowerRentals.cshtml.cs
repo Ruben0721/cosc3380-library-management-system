@@ -22,6 +22,7 @@ namespace Project.Pages
         [BindProperty(SupportsGet = true)] public string? BorrowerType { get; set; }
 
         public string BorrowerName { get; set; } = "";
+        public string? BorrowerEmail { get; set; }
         public Student? StudentInfo { get; set; }
     public FacultyMember? FacultyInfo { get; set; }
         public List<RentalRow> Rows { get; set; } = new();
@@ -31,6 +32,8 @@ namespace Project.Pages
             var user = await _db.LibraryUsers.FirstOrDefaultAsync(u => u.LibraryUserId == UserId);
             if (user == null) return NotFound();
             BorrowerName = user.FullName;
+            BorrowerEmail = await _db.UserAccounts.AsNoTracking()
+                .Where(a => a.LibraryUserId == UserId).Select(a => a.Email).SingleOrDefaultAsync();
             StudentInfo = await _db.Students.AsNoTracking()
             .FirstOrDefaultAsync(s => s.LibraryUserId == UserId);
 

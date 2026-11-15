@@ -175,19 +175,7 @@ namespace Project.Pages.Account
                 account.SessionVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
         };
 
-                if (account.LibraryUserId.HasValue)
-                {
-                    claims.Add(new Claim(
-                        "library_user_id",
-                        account.LibraryUserId.Value.ToString()));
-                }
-
-                if (account.StaffId.HasValue)
-                {
-                    claims.Add(new Claim(
-                        "staff_id",
-                        account.StaffId.Value.ToString()));
-                }
+                claims.Add(new Claim("library_user_id", account.LibraryUserId.ToString()));
 
                 var identity = new ClaimsIdentity(
                     claims,

@@ -1,0 +1,37 @@
+@model Project.Models.ContactInput
+<fieldset class="mb-4">
+    <legend class="h5">Contact information (optional)</legend>
+    <p class="form-text">You can leave these fields blank or update them later.</p>
+    <div class="row g-3">
+        <div class="col-12">
+            <label asp-for="PhoneNumber" class="form-label"></label>
+            <input asp-for="PhoneNumber" type="tel" class="form-control" autocomplete="tel" maxlength="30" />
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="AddressLine1" class="form-label"></label>
+            <input asp-for="AddressLine1" class="form-control" autocomplete="address-line1" maxlength="150" />
+            <span asp-validation-for="AddressLine1" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="AddressLine2" class="form-label"></label>
+            <input asp-for="AddressLine2" class="form-control" autocomplete="address-line2" maxlength="100" />
+            <span asp-validation-for="AddressLine2" class="text-danger"></span>
+        </div>
+        <div class="col-md-5">
+            <label asp-for="City" class="form-label"></label>
+            <input asp-for="City" class="form-control" autocomplete="address-level2" maxlength="50" />
+            <span asp-validation-for="City" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="State" class="form-label"></label>
+            <input asp-for="State" class="form-control" autocomplete="address-level1" maxlength="30" />
+            <span asp-validation-for="State" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="PostalCode" class="form-label"></label>
+            <input asp-for="PostalCode" class="form-control" autocomplete="postal-code" maxlength="20" />
+            <span asp-validation-for="PostalCode" class="text-danger"></span>
+        </div>
+    </div>
+</fieldset>

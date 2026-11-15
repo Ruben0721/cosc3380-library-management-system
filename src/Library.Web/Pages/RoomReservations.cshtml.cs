@@ -225,19 +225,11 @@ public class RoomReservationsModel : PageModel
 
         var account = await _db.UserAccounts.AsNoTracking()
             .Where(a => a.AccountId == accountId && a.IsEnabled)
-            .Select(a => new { a.LibraryUserId, a.StaffId })
+            .Select(a => new { a.LibraryUserId })
             .SingleOrDefaultAsync();
 
         if (account == null)
             return null;
-
-        if (account.StaffId.HasValue)
-        {
-            return await _db.StaffMembers.AsNoTracking()
-                .Where(s => s.StaffId == account.StaffId.Value)
-                .Select(s => s.LibraryUserId)
-                .SingleOrDefaultAsync();
-        }
 
         return account.LibraryUserId;
     }

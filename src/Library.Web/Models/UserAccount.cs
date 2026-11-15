@@ -26,9 +26,8 @@ namespace Project.Models
 
         public bool IsEnabled { get; set; } = true;
 
-        public int? LibraryUserId { get; set; }
-
-        public int? StaffId { get; set; }
+        public int LibraryUserId { get; set; }
+        public LibraryUser Borrower { get; set; } = null!;
 
         public int FailedLoginAttempts { get; set; } = 0;
 

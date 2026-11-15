@@ -59,14 +59,14 @@ namespace Project.Pages.Staff
             var staffQuery =
                 from staff in _db.StaffMembers.AsNoTracking()
                 join account in _db.UserAccounts.AsNoTracking()
-                    on staff.StaffId equals account.StaffId
+                    on staff.LibraryUserId equals account.LibraryUserId
                     into accounts
                 from account in accounts.DefaultIfEmpty()
                 select new PersonRow
                 {
                     StaffId = staff.StaffId,
-                    FullName = staff.FirstName + " " + staff.LastName,
-                    Position = staff.Role,
+                    FullName = staff.Borrower.FullName,
+                    Position = staff.JobTitle,
                     StaffIsActive = staff.IsActive,
                     AccountId = account == null
                         ? null
@@ -91,7 +91,7 @@ namespace Project.Pages.Staff
                 select new PersonRow
                 {
                     FacultyId = faculty.FacultyId,
-                    FullName = faculty.FirstName + " " + faculty.LastName,
+                    FullName = faculty.Borrower.FullName,
                     Position = faculty.Position,
                     AccountId = account == null
                         ? null

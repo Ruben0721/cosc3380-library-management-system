@@ -92,12 +92,10 @@ namespace Project.Pages.Staff
             var query =
                 from borrower in _db.LibraryUsers.AsNoTracking()
                 join employee in _db.StaffMembers
-                    on (int?)borrower.LibraryUserId equals employee.LibraryUserId into employees
+                    on borrower.LibraryUserId equals employee.LibraryUserId into employees
                 from employee in employees.DefaultIfEmpty()
-                // Employee logins point to Staff. Other logins point straight to the borrower.
                 from account in _db.UserAccounts.Where(a =>
-                    (employee != null && a.StaffId == employee.StaffId) ||
-                    (employee == null && a.LibraryUserId == borrower.LibraryUserId)).DefaultIfEmpty()
+                    a.LibraryUserId == borrower.LibraryUserId).DefaultIfEmpty()
                 select new BorrowerRow
                 {
                     LibraryUserId = borrower.LibraryUserId,
@@ -111,13 +109,10 @@ namespace Project.Pages.Staff
                     LoginIsEnabled = account == null
                         ? null
                         : (bool?)account.IsEnabled,
-                    StaffId = employee == null ? (account == null ? null : account.StaffId) : employee.StaffId,
+                    StaffId = employee == null ? null : (int?)employee.StaffId,
                     IsStudent = _db.Students.Any(s => s.LibraryUserId == borrower.LibraryUserId),
                     IsFaculty = _db.FacultyMembers.Any(f => f.LibraryUserId == borrower.LibraryUserId),
-                    RecordEmail = _db.Students
-                        .Where(s => s.LibraryUserId == borrower.LibraryUserId)
-                        .Select(s => s.Email)
-                        .FirstOrDefault()
+                    RecordEmail = account == null ? null : account.Email
                 };
 
             
@@ -241,7 +236,6 @@ namespace Project.Pages.Staff
                     Role = isStudent ? "Student" : "Faculty",
                     IsEnabled = true,
                     LibraryUserId = libraryUserId,
-                    StaffId = null,
                     FailedLoginAttempts = 0,
                     LockoutUntilUtc = null
                 };
@@ -301,8 +295,7 @@ namespace Project.Pages.Staff
                     .Where(b => !_db.StaffMembers.Any(s => s.LibraryUserId == b.LibraryUserId))
                     .Where(b => !_db.UserAccounts.Any(a =>
                         a.LibraryUserId == b.LibraryUserId &&
-                        (a.StaffId != null ||
-                         (a.Role != "Student" && a.Role != "Faculty"))))
+                        (a.Role != "Student" && a.Role != "Faculty")))
                     .Where(b => b.IsActive != desiredStatus)
                     .ExecuteUpdateAsync(updates => updates
                         .SetProperty(b => b.IsActive, desiredStatus));
@@ -353,7 +346,6 @@ namespace Project.Pages.Staff
                 int changed = await _db.UserAccounts
                     .Where(a =>
                         a.LibraryUserId == libraryUserId &&
-                        a.StaffId == null &&
                         (a.Role == "Student" || a.Role == "Faculty"))
                     .Where(a => !_db.StaffMembers.Any(s => s.LibraryUserId == libraryUserId))
                     .Where(a => a.IsEnabled != desiredStatus)

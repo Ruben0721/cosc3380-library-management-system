@@ -48,25 +48,19 @@ namespace Project.Auth
                 return false;
             }
 
-            bool staffRole =
-                account.Role == "Staff" ||
-                account.Role == "Admin";
-
-            if (staffRole && !account.StaffId.HasValue)
-            {
+            if (!await db.LibraryUsers.AnyAsync(u => u.LibraryUserId == account.LibraryUserId))
                 return false;
-            }
 
-            if (account.StaffId.HasValue)
-            {
-                return await db.StaffMembers
-                    .AsNoTracking()
-                    .AnyAsync(s =>
-                        s.StaffId == account.StaffId.Value &&
-                        s.IsActive);
-            }
+            // Validate role membership through the same person ID for every account.
+            if (account.Role == "Staff" || account.Role == "Admin")
+                return await db.StaffMembers.AsNoTracking().AnyAsync(s =>
+                    s.LibraryUserId == account.LibraryUserId && s.IsActive);
+            if (account.Role == "Student")
+                return await db.Students.AnyAsync(s => s.LibraryUserId == account.LibraryUserId);
+            if (account.Role == "Faculty")
+                return await db.FacultyMembers.AnyAsync(f => f.LibraryUserId == account.LibraryUserId);
 
-            return true;
+            return false;
         }
     }
 }

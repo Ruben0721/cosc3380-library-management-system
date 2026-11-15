@@ -10,6 +10,10 @@
         <h1 class="h2">Log in</h1>
 
         <p>Sign in using your library account.</p>
+        @if (TempData["ProfileChangedMessage"] is string profileMessage)
+        {
+            <div class="alert alert-success" role="status">@profileMessage</div>
+        }
         @if (TempData["PasswordChangedMessage"] is string message)
         {
             <div class="alert alert-success" role="status">@message</div>
