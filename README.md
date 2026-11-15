@@ -48,3 +48,12 @@ This cleanup leaves `frontend/` in place so its existing deployment path remains
 ## Naming conventions
 
 Use page-specific classes such as `InventoryModel` and `AddInventoryItemModel`. Keep entity names and database column mappings stable unless a database migration is intentionally included.
+
+
+## Book covers and awaiting-pickup status (November 2026)
+
+Before deploying the updated ASP.NET Razor application, apply `database/migrations/2026-11-15-book-covers.sql` **once** to the MySQL/Aiven database. This adds nullable `CoverImage` (MEDIUMBLOB) and `CoverImageContentType` columns to `Books`. Existing records remain without a cover until staff upload one.
+
+Staff can add, replace, and remove JPEG, PNG, or WebP covers (maximum 2 MB) using Add Inventory Item / Edit Item. Covers are stored in MySQL, not in local wwwroot files. The public catalog and item details display them.
+
+A Ready hold is shown as **Awaiting Pickup** in catalog, item details, and staff inventory, including the inventory status filter. The underlying Inventory.Status remains Available while the hold is Ready so that existing database rules and hold-release workflows continue to work. Borrow requests lock the physical copy and reject an existing Ready hold; regular checkout rejects copies reserved for another member. Once pickup is fulfilled, the loan changes inventory status to Checked Out. Cancellation and expiration release the Ready hold; queued holds are promoted by the existing circulation logic.
