@@ -13,6 +13,7 @@ namespace Project.Pages
         public ItemDetailsModel(LibraryDbContext db) => _db = db;
 
         public Inventory? Item { get; set; }
+        public bool AwaitingPickup { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
@@ -27,6 +28,7 @@ namespace Project.Pages
 
             if (Item == null)
                 return NotFound();
+            AwaitingPickup = await _db.Holds.AsNoTracking().AnyAsync(h => h.ItemId == id && h.Status == "Ready");
             return Page();
         }
     }
