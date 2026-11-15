@@ -20,6 +20,7 @@ namespace Project.Pages
 
         public List<(string Value, string Label)> Types { get; set; } = new();
         public List<Inventory> Results { get; set; } = new();
+        public HashSet<int> AwaitingPickupIds { get; set; } = new();
 
      public async Task OnGetAsync()
     {
@@ -81,6 +82,11 @@ namespace Project.Pages
         Results = await query
             .OrderBy(i => i.Type).ThenBy(i => i.Name)
             .ToListAsync();
+
+        var ids = Results.Select(i => i.Id).ToList();
+        AwaitingPickupIds = (await _db.Holds.AsNoTracking()
+            .Where(h => h.Status == "Ready" && h.ItemId != null && ids.Contains(h.ItemId.Value))
+            .Select(h => h.ItemId!.Value).ToListAsync()).ToHashSet();
     }
 }
 }
