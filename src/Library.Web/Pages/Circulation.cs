@@ -13,7 +13,6 @@ namespace Project.Pages
         public const decimal FineBlockLimit = 10.00m;      
         public const int MaxPickupReservations = 3;       
         public const int PickupDays = 2;                  
-        public const int DefaultWaitlistLimit = 3;         
 
         public static bool NeedsPickup(string? type) => type == null || !SelfCheckoutTypes.Contains(type);
 
@@ -101,13 +100,36 @@ namespace Project.Pages
       
         public static async Task<int> WaitlistLimitAsync(LibraryDbContext db, int memberId)
         {
-            var values = await db.Database.SqlQuery<int>(
-                $"SELECT COALESCE((SELECT WaitlistLimit FROM Student WHERE LibraryUserId = {memberId} LIMIT 1), (SELECT waitlist_limit FROM Faculty WHERE LibraryUserId = {memberId} LIMIT 1), {DefaultWaitlistLimit}) AS Value")
-                .ToListAsync();
-            return values.FirstOrDefault(DefaultWaitlistLimit);
+            var values = await db.Database.SqlQuery<int>($"""
+                SELECT COALESCE(CASE a.Role
+                    WHEN 'Student' THEN s.WaitlistLimit WHEN 'Faculty' THEN f.waitlist_limit
+                    WHEN 'Staff' THEN st.WaitlistLimit WHEN 'Admin' THEN st.WaitlistLimit
+                END, 0) AS Value
+                FROM UserAccount a
+                LEFT JOIN Student s ON s.LibraryUserId=a.LibraryUserId
+                LEFT JOIN Faculty f ON f.LibraryUserId=a.LibraryUserId
+                LEFT JOIN Staff st ON st.LibraryUserId=a.LibraryUserId
+                WHERE a.LibraryUserId={memberId}
+                """).ToListAsync();
+            return values.FirstOrDefault();
         }
 
-      
+        public static async Task<int> RentalLimitAsync(LibraryDbContext db, int memberId)
+        {
+            var values = await db.Database.SqlQuery<int>($"""
+                SELECT COALESCE(CASE a.Role
+                    WHEN 'Student' THEN s.RentalLimit WHEN 'Faculty' THEN f.rental_limit
+                    WHEN 'Staff' THEN st.RentalLimit WHEN 'Admin' THEN st.RentalLimit
+                END, 0) AS Value
+                FROM UserAccount a
+                LEFT JOIN Student s ON s.LibraryUserId=a.LibraryUserId
+                LEFT JOIN Faculty f ON f.LibraryUserId=a.LibraryUserId
+                LEFT JOIN Staff st ON st.LibraryUserId=a.LibraryUserId
+                WHERE a.LibraryUserId={memberId}
+                """).ToListAsync();
+            return values.FirstOrDefault();
+        }
+
         public static async Task<string?> CreateLoanAsync(LibraryDbContext db, int itemId, int memberId, string? type)
         {
             int loanDays = await LoanDaysAsync(db, type);

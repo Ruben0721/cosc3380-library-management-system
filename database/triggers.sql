@@ -3,21 +3,26 @@
 DELIMITER $$
 
 CREATE TRIGGER `ValidateHoldLimit` BEFORE INSERT ON `Hold` FOR EACH ROW BEGIN
-    DECLARE v_role VARCHAR(20);
-    DECLARE v_limit INT DEFAULT 0;
-    DECLARE v_active_holds INT DEFAULT 0;
-    SELECT Role INTO v_role FROM UserAccount WHERE LibraryUserId=NEW.LibraryUserId;
-    IF v_role='Student' THEN SET v_limit=5;
-    ELSEIF v_role='Faculty' THEN SET v_limit=10;
-    ELSEIF v_role IN ('Staff','Admin') THEN SET v_limit=0;
-    ELSE SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Hold rejected: borrower account role was not found';
+    DECLARE v_limit INT DEFAULT NULL;
+    DECLARE v_count INT DEFAULT 0;
+    SELECT CASE a.Role
+        WHEN 'Student' THEN s.WaitlistLimit
+        WHEN 'Faculty' THEN f.waitlist_limit
+        WHEN 'Staff' THEN st.WaitlistLimit
+        WHEN 'Admin' THEN st.WaitlistLimit
+    END INTO v_limit
+    FROM UserAccount a
+    LEFT JOIN Student s ON s.LibraryUserId=a.LibraryUserId
+    LEFT JOIN Faculty f ON f.LibraryUserId=a.LibraryUserId
+    LEFT JOIN Staff st ON st.LibraryUserId=a.LibraryUserId
+    WHERE a.LibraryUserId=NEW.LibraryUserId;
+    IF v_limit IS NULL OR v_limit < 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Hold rejected: borrower hold limit is not configured';
     END IF;
-    IF v_limit>0 THEN
-        SELECT COUNT(*) INTO v_active_holds FROM `Hold`
-        WHERE LibraryUserId=NEW.LibraryUserId AND Status IN ('Pending','Ready');
-        IF v_active_holds>=v_limit THEN
-            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Hold rejected: borrower has reached the active hold limit';
-        END IF;
+    SELECT COUNT(*) INTO v_count FROM `Hold`
+    WHERE LibraryUserId=NEW.LibraryUserId AND Status IN ('Pending','Ready');
+    IF v_count >= v_limit THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Hold rejected: borrower has reached the active hold limit';
     END IF;
 END$$
 
@@ -47,58 +52,27 @@ CREATE TRIGGER `trg_maintenance_resolved` BEFORE UPDATE ON `MaintenanceRequest` 
 END$$
 
 CREATE TRIGGER `ValidateRentalLimit` BEFORE INSERT ON `Rentals` FOR EACH ROW BEGIN
-	DECLARE rental_limit_value INT DEFAULT NULL;
-	DECLARE current_rentals INT DEFAULT 0;
-	DECLARE is_student INT DEFAULT 0;
-	DECLARE is_faculty INT DEFAULT 0;
-
-	SET  is_student = (
-		SELECT COUNT(*)
-		FROM Student
-		WHERE LibraryUserId = NEW.LibraryUserId
-	);
-
-	SET is_faculty = (
-		SELECT COUNT(*)
-		FROM Faculty
-		WHERE LibraryUserId = NEW.LibraryUserId
-	);
-
-	IF is_student = 1 THEN
-		SET rental_limit_value = (
-			SELECT RentalLimit
-			FROM Student
-			WHERE LibraryUserId = NEW.LibraryUserId
-		);
-	ELSEIF is_faculty THEN
-		SET rental_limit_value = (
-			SELECT rental_limit
-			FROM Faculty
-			WHERE LibraryUserId = NEW.LibraryUserId
-		);
-	ELSE
-		SIGNAL SQLSTATE '45000'
-			SET MESSAGE_TEXT = 'Rental rejected: borrower is not a registered student or faculty member';
-	END IF;
-
-	IF rental_limit_value IS NULL THEN
-		SIGNAL SQLSTATE '45000'
-			SET MESSAGE_TEXT = 'Rental rejected: borrower rental limit is not configured';
-	END IF;
-
-	SET current_rentals = (
-		SELECT COUNT(*)
-		FROM  Rentals
-		WHERE LibraryUserId = NEW.LibraryUserId
-			AND Isreturned = b'0'
-	);
-
-	IF current_rentals >= rental_limit_value THEN
-		SIGNAL SQLSTATE '45000'
-			SET MESSAGE_TEXT = 'Retnal rejected: borrower has reached their rental limit';
-	END IF;
-
-
+    DECLARE v_limit INT DEFAULT NULL;
+    DECLARE v_count INT DEFAULT 0;
+    SELECT CASE a.Role
+        WHEN 'Student' THEN s.RentalLimit
+        WHEN 'Faculty' THEN f.rental_limit
+        WHEN 'Staff' THEN st.RentalLimit
+        WHEN 'Admin' THEN st.RentalLimit
+    END INTO v_limit
+    FROM UserAccount a
+    LEFT JOIN Student s ON s.LibraryUserId=a.LibraryUserId
+    LEFT JOIN Faculty f ON f.LibraryUserId=a.LibraryUserId
+    LEFT JOIN Staff st ON st.LibraryUserId=a.LibraryUserId
+    WHERE a.LibraryUserId=NEW.LibraryUserId;
+    IF v_limit IS NULL OR v_limit < 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Rental rejected: borrower rental limit is not configured';
+    END IF;
+    SELECT COUNT(*) INTO v_count FROM `Rentals`
+    WHERE LibraryUserId=NEW.LibraryUserId AND IsReturned = b'0';
+    IF v_count >= v_limit THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Rental rejected: borrower has reached the rental limit';
+    END IF;
 END$$
 
 CREATE TRIGGER `ValidateRentalBeforeInsert` BEFORE INSERT ON `Rentals` FOR EACH ROW BEGIN

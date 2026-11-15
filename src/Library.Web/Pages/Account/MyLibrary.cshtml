@@ -135,7 +135,7 @@
                         <section class="library-account-panel account-summary">
                             <h3 class="h5">Checkouts</h3>
                             <p class="account-value">@Model.Loans.Count</p>
-                            <p>Items currently checked out</p>
+                            <p>Items currently checked out · limit @Model.RentalLimit</p>
                             @{
                                 int overdueOut = Model.Loans.Count(l => l.DaysLate > 0 && l.DroppedOffAt == null);
                                 int inBookDrop = Model.Loans.Count(l => l.DroppedOffAt != null);
@@ -155,7 +155,7 @@
                         <section class="library-account-panel account-summary">
                             <h3 class="h5">Requests</h3>
                             <p class="account-value">@Model.Holds.Count</p>
-                            <p>Active holds</p>
+                            <p>Active holds · limit @Model.WaitlistLimit</p>
                             @if (Model.Holds.Any(h => h.Status == "Ready"))
                             {
                                 <p class="fw-bold">@Model.Holds.Count(h => h.Status == "Ready") ready for pickup</p>

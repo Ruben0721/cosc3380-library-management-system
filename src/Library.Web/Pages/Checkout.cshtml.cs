@@ -13,6 +13,7 @@ namespace Project.Pages
 
         [BindProperty(SupportsGet = true)] public int ItemId { get; set; }
         [BindProperty(SupportsGet = true)] public string? BorrowerId { get; set; }
+        [BindProperty(SupportsGet = true)] public string BorrowerKind { get; set; } = "StudentFaculty";
 
         // Loaded data
         public Inventory? Item { get; set; }
@@ -87,36 +88,50 @@ namespace Project.Pages
             var id = BorrowerId.Trim();
 
             // Is it a Student ID?
-            var student = await _db.Students.AsNoTracking().Include(s => s.Borrower).FirstOrDefaultAsync(s => s.StudentId == id);
+            var student = BorrowerKind == "Staff" ? null : await _db.Students.AsNoTracking().Include(s => s.Borrower).FirstOrDefaultAsync(s => s.StudentId == id);
             if (student != null)
             {
                 LibraryUserId = student.LibraryUserId;
                 BorrowerName = student.Borrower.FullName;
                 BorrowerType = "Student";
-                Limit = 5;
+                Limit = student.RentalLimit ?? 0;
             }
             else
             {
                
-                var faculty = await _db.FacultyMembers.AsNoTracking().Include(f => f.Borrower).FirstOrDefaultAsync(f => f.FacultyId == id);
+                var faculty = BorrowerKind == "Staff" ? null : await _db.FacultyMembers.AsNoTracking().Include(f => f.Borrower).FirstOrDefaultAsync(f => f.FacultyId == id);
                 if (faculty != null)
                 {
                     LibraryUserId = faculty.LibraryUserId;
                     BorrowerName = faculty.Borrower.FullName;
                     BorrowerType = "Faculty";
-                    Limit = faculty.RentalLimit ?? 10;
+                    Limit = faculty.RentalLimit ?? 0;
+                }
+            }
+
+            if (BorrowerKind == "Staff" && int.TryParse(id, out var staffId))
+            {
+                var staff = await _db.StaffMembers.AsNoTracking().Include(s => s.Borrower)
+                    .FirstOrDefaultAsync(s => s.StaffId == staffId);
+                if (staff != null)
+                {
+                    LibraryUserId = staff.LibraryUserId;
+                    BorrowerName = staff.Borrower.FullName;
+                    BorrowerType = "Staff / Admin";
+                    if (!staff.IsActive) Error = "This staff member is inactive.";
                 }
             }
 
             if (LibraryUserId == null)
             {
-                Error = $"No student or faculty member found with ID {id}.";
+                Error = $"No student, faculty or staff member found with ID {id}.";
                 return;
             }
 
             
+            Limit = await Circulation.RentalLimitAsync(_db, LibraryUserId.Value);
             ActiveRentals = await _db.Rentals.CountAsync(r =>
-                r.LibraryUserId == LibraryUserId && r.ReturnedDate == null);
+                r.LibraryUserId == LibraryUserId && !r.IsReturned);
 
             if (ActiveRentals >= Limit)
                 Error = $"{BorrowerName} has reached the limit of {Limit} items.";

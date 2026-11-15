@@ -37,6 +37,8 @@ public class MyLibraryModel(LibraryDbContext db) : PageModel
     public string Role { get; private set; } = "";
     public string? FullName { get; private set; }
     public int? MemberId { get; private set; }
+    public int RentalLimit { get; private set; }
+    public int WaitlistLimit { get; private set; }
 public string? StudentNumber { get; private set; }
 public string? FacultyNumber { get; private set; }
  
@@ -80,6 +82,8 @@ public string? FacultyNumber { get; private set; }
             .Select(u => u.FullName).SingleOrDefaultAsync();
         if (FullName == null) return Page();
         MemberId = borrowerId;
+        RentalLimit = await Circulation.RentalLimitAsync(db, borrowerId!.Value);
+        WaitlistLimit = await Circulation.WaitlistLimitAsync(db, borrowerId.Value);
         StudentNumber = await db.Database
             .SqlQuery<string>($"SELECT CAST(Student_ID AS CHAR) AS Value FROM Student WHERE LibraryUserId = {borrowerId}")
             .FirstOrDefaultAsync();

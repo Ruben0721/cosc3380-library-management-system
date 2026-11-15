@@ -41,7 +41,8 @@
     <section class="report-section">
         <h2>Borrowing</h2>
         <ul>
-            <li>Students can have up to 5 items checked out at a time; faculty up to 10.</li>
+            <li>Default checkout limits are 5 items for students, 10 for faculty, and 20 for staff and admins. Individual saved limits apply.</li>
+            <li>Staff and admins can have up to 20 active holds, including requests waiting for pickup. Cancelled, expired and fulfilled holds do not count. Up to 3 items may wait for pickup at once.</li>
             <li>Request an available item online. It's held at the circulation desk for @Project.Pages.Circulation.PickupDays days, and your loan starts when you pick it up.</li>
             <li>If every copy is out, place a hold. Holds are first come, first served; the next copy returned is set aside for the first person in line.</li>
             <li>Members with more than @Project.Pages.Circulation.FineBlockLimit.ToString("C") in unpaid fines can't request or hold items until they pay.</li>

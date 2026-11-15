@@ -215,11 +215,11 @@ namespace Project.Pages
                 .ToListAsync();
             NextDue = openLoans.Where(r => r.EndDate != null).Select(r => r.EndDate).Min();
 
-            // Signed-in borrower (students and faculty carry a library_user_id claim)
+            // Every signed-in account carries its shared library member ID.
             MemberId = int.TryParse(User.FindFirst("library_user_id")?.Value, out var id) ? id : null;
             if (MemberId == null)
             {
-                Blocked = "Sign in with a student or faculty account to request or hold items.";
+                Blocked = "Sign in to request or hold items.";
                 return true;
             }
 

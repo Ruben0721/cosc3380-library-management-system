@@ -11,5 +11,7 @@ public class StaffMember
     public LibraryUser Borrower { get; set; } = null!;
     [Required, StringLength(30)] public string JobTitle { get; set; } = "";
     [Column(TypeName = "date")] public DateTime StartDate { get; set; }
+    [Range(0, int.MaxValue)] public int RentalLimit { get; set; } = 20;
+    [Range(0, int.MaxValue)] public int WaitlistLimit { get; set; } = 20;
     public bool IsActive { get; set; } = true;
 }

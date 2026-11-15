@@ -251,6 +251,10 @@ CREATE TABLE `Staff` (
   `IsActive` tinyint(1) NOT NULL DEFAULT '1',
   `LibraryUserId` int NOT NULL,
   `JobTitle` varchar(30) NOT NULL,
+  `RentalLimit` int NOT NULL DEFAULT '20',
+  `WaitlistLimit` int NOT NULL DEFAULT '20',
+  CONSTRAINT `chk_staff_rental_limit` CHECK (`RentalLimit` >= 0),
+  CONSTRAINT `chk_staff_waitlist_limit` CHECK (`WaitlistLimit` >= 0),
   PRIMARY KEY (`Staff_Id`),
   UNIQUE KEY `uq_staff_library_user` (`LibraryUserId`),
   CONSTRAINT `fk_staff_library_user` FOREIGN KEY (`LibraryUserId`) REFERENCES `Libraryuser` (`LibraryUserId`)

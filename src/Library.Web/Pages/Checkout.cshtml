@@ -11,7 +11,11 @@
 <section class="overview">
     <form method="get" class="search-form">
         <input type="hidden" name="ItemId" value="@Model.ItemId" />
-        <input name="BorrowerId" value="@Model.BorrowerId" placeholder="Student ID or Faculty ID" />
+        <select asp-for="BorrowerKind" aria-label="Borrower type">
+            <option value="StudentFaculty">Student or faculty</option>
+            <option value="Staff">Staff or admin</option>
+        </select>
+        <input name="BorrowerId" value="@Model.BorrowerId" placeholder="Student ID, Faculty ID or Staff ID" />
         <button type="submit" class="button">Look up</button>
     </form>
 </section>
@@ -35,6 +39,7 @@
         <form method="post">
             <input type="hidden" name="ItemId" value="@Model.ItemId" />
             <input type="hidden" name="BorrowerId" value="@Model.BorrowerId" />
+            <input type="hidden" name="BorrowerKind" value="@Model.BorrowerKind" />
             <button type="submit" class="button button-primary">Confirm checkout</button>
         </form>
     </section>
