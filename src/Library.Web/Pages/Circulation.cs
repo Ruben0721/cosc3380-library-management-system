@@ -142,8 +142,6 @@ namespace Project.Pages
                 var locked = await db.Database.SqlQueryRaw<int>(
                     "SELECT Id AS Value FROM Inventory WHERE Id = {0} AND Status = 'Available' FOR UPDATE", itemId)
                     .ToListAsync();
-                var reservedForMember = await db.Holds.AnyAsync(h =>
-                    h.ItemId == itemId && h.Status == "Ready" && h.LibraryUserId == memberId);
                 if (locked.Count == 0 ||
                     await db.Holds.AnyAsync(h => h.ItemId == itemId && h.Status == "Ready" && h.LibraryUserId != memberId))
                 {
