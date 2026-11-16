@@ -15,12 +15,12 @@ Test logins for each role (Student, Faculty, Staff, Admin) are in the project do
 
 ## Files in this submission
 
-
+| File | What it is |
 |---|---|
 | `README.md` | This file |
 | `dump.sql` | SQL dump of the populated database: tables, sample data, user accounts and triggers |
 | `Project Document` | Types of data, user roles, triggers, queries and reports, hosted link and test logins |
-| Codebase | The full repository |
+| Codebase | The full repository, laid out as below |
 
 ## Repository layout
 
@@ -48,8 +48,24 @@ Test logins for each role (Student, Faculty, Staff, Admin) are in the project do
 └── Website/                    legacy website files retained for reference
 ```
 
+The application is `src/Library.Web/Project.csproj`. The `backend/` and `Website/` folders are not used by the current application.
+
 ---
 
 ## How to install
 
 1. **Install** the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) and [MySQL 8.0](https://dev.mysql.com/downloads/mysql/).
+2. **Create the database and import the dump:**
+   ```bash
+   mysql -u root -p -e "CREATE DATABASE library;"
+   mysql -u root -p library < dump.sql
+   ```
+3. **Connect the app to the database** (run from the folder containing `Library.sln`):
+   ```bash
+   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Port=3306;Database=library;User=root;Password=YOUR_MYSQL_PASSWORD;" --project src/Library.Web/Project.csproj
+   ```
+4. **Run the app:**
+   ```bash
+   dotnet run --project src/Library.Web
+   ```
+   Open the URL it prints and sign in with a test account from the project document.
