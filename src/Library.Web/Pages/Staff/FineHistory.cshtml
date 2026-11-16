@@ -1,0 +1,118 @@
+@page
+@model Project.Pages.Staff.FineHistoryModel
+@{
+    ViewData["Title"] = "Fine & payment history";
+    string Method(string m) => m.Length > 0 ? char.ToUpper(m[0]) + m[1..] : m;
+}
+
+<div class="report-header">
+    <div>
+        <p class="eyebrow">Fines</p>
+        <h1>Fine &amp; payment history</h1>
+        <p class="report-lede">Search a member by name to see every fine they were charged and every payment they made.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-secondary" asp-page="/Staff/Fines">Take a payment</a>
+    </div>
+</div>
+
+<section class="overview">
+    <form method="get" class="search-form">
+        <input type="text" name="Name" value="@Model.Name" placeholder="Member name, e.g. Maria" aria-label="Member name" autofocus />
+        <button type="submit" class="button button-primary">Search</button>
+        @if (!string.IsNullOrEmpty(Model.Name) || Model.MemberId != null)
+        {
+            <a asp-page="/Staff/FineHistory">Clear</a>
+        }
+    </form>
+</section>
+
+@if (Model.MemberId == null && !string.IsNullOrWhiteSpace(Model.Name))
+{
+    <section class="report-section">
+        <h2>Members matching "@Model.Name" (@Model.Matches.Count)</h2>
+        @if (Model.Matches.Count == 0)
+        {
+            <p>No members match that name.</p>
+        }
+        else
+        {
+            <table class="results">
+                <tr><th>Member</th><th class="num">Fines</th><th class="num">Charged</th><th class="num">Paid</th><th class="num">Unpaid</th><th></th></tr>
+                @foreach (var m in Model.Matches)
+                {
+                    <tr>
+                        <td>@m.Name @if (!m.IsActive) { <span class="pill pill-off">Inactive</span> }</td>
+                        <td class="num">@m.Fines</td>
+                        <td class="num">@m.Charged.ToString("C")</td>
+                        <td class="num">@m.Paid.ToString("C")</td>
+                        <td class="num">@if (m.Unpaid > 0) { <strong>@m.Unpaid.ToString("C")</strong> } else { <span>—</span> }</td>
+                        <td class="num"><a asp-page="/Staff/FineHistory" asp-route-MemberId="@m.MemberId" asp-route-Name="@Model.Name">View history</a></td>
+                    </tr>
+                }
+            </table>
+        }
+    </section>
+}
+
+@if (Model.MemberId != null && Model.MemberName != null)
+{
+    <h2 class="mt-4">@Model.MemberName</h2>
+    <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Fines charged</div><div class="kpi-value">@Model.TotalCharged.ToString("C")</div><div class="kpi-note">@Model.Fines.Count fine@(Model.Fines.Count == 1 ? "" : "s")</div></div>
+        <div class="kpi"><div class="kpi-label">Payments</div><div class="kpi-value">@Model.TotalPaid.ToString("C")</div><div class="kpi-note">@Model.Payments.Count payment@(Model.Payments.Count == 1 ? "" : "s")</div></div>
+        <div class="kpi"><div class="kpi-label">Unpaid</div><div class="kpi-value">@Model.TotalUnpaid.ToString("C")</div><div class="kpi-note">@(Model.Owed > Model.TotalUnpaid ? $"{Model.Owed:C} with late fees building up · " : "")@(Model.Owed > Project.Pages.Circulation.FineBlockLimit ? "Borrowing blocked" : "Can borrow")</div></div>
+    </div>
+
+    <section class="report-section">
+        <h2>Fines</h2>
+        @if (Model.Fines.Count == 0)
+        {
+            <p>No fines on record.</p>
+        }
+        else
+        {
+            <table class="results">
+                <tr><th>Charged</th><th>Item</th><th>Type</th><th class="num">Days late</th><th>Notes</th><th class="num">Amount</th><th>Status</th></tr>
+                @foreach (var f in Model.Fines)
+                {
+                    <tr>
+                        <td>@f.DateAssessed.ToString("MMM d, yyyy")</td>
+                        <td>@(f.Item ?? "—")</td>
+                        <td>@f.FineType</td>
+                        <td class="num">@(f.DaysLate is > 0 ? f.DaysLate.ToString() : "—")</td>
+                        <td>@f.Notes</td>
+                        <td class="num">@f.Amount.ToString("C")</td>
+                        <td><span class="pill @(f.IsPaid ? "pill-ok" : "pill-warn")">@(f.IsPaid ? "Paid" : "Unpaid")</span></td>
+                    </tr>
+                }
+                <tr class="total"><td colspan="5">Total</td><td class="num">@Model.TotalCharged.ToString("C")</td><td>@Model.TotalUnpaid.ToString("C") unpaid</td></tr>
+            </table>
+        }
+    </section>
+
+    <section class="report-section">
+        <h2>Payments</h2>
+        @if (Model.Payments.Count == 0)
+        {
+            <p>No payments on record.</p>
+        }
+        else
+        {
+            <table class="results">
+                <tr><th>Receipt</th><th>Date</th><th>For</th><th>Method</th><th class="num">Amount</th></tr>
+                @foreach (var p in Model.Payments)
+                {
+                    <tr>
+                        <td>@p.PaymentId</td>
+                        <td>@p.PaymentDate.ToString("MMM d, yyyy")</td>
+                        <td>@p.For</td>
+                        <td>@Method(p.Method)</td>
+                        <td class="num">@p.Amount.ToString("C")</td>
+                    </tr>
+                }
+                <tr class="total"><td colspan="4">Total</td><td class="num">@Model.TotalPaid.ToString("C")</td></tr>
+            </table>
+        }
+    </section>
+}
