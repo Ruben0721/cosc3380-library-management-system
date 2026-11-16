@@ -45,7 +45,7 @@ dotnet build Library.sln
 dotnet run --project src/Library.Web/Project.csproj --launch-profile https
 ```
 
-Open the HTTPS URL printed by the application and navigate to `/Search`. The C# app currently has no root homepage. If needed, trust the local development certificate with `dotnet dev-certs https --trust`.
+Open the HTTPS URL printed by the application. If needed, trust the local development certificate with `dotnet dev-certs https --trust`.
 
 User secrets are loaded in Development. In hosting, set the environment variable `ConnectionStrings__DefaultConnection` instead. Never commit real credentials. The previously committed database password must be rotated; removing it from the current file does not remove it from Git history.
 
