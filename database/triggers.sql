@@ -339,7 +339,7 @@ CREATE TRIGGER `ValidateRoomReservation` BEFORE INSERT ON `Room_reservation` FOR
       INTO conflicting_reservations
       FROM `Room_reservation`
      WHERE room_id = NEW.room_id
-       AND status <> 'Cancelled'
+       AND status IN ('Confirmed', 'Checked In')
        AND start_time < NEW.end_time
        AND end_time > NEW.start_time;
 
@@ -375,13 +375,13 @@ CREATE TRIGGER `trg_room_reservation_setup` AFTER INSERT ON `Room_reservation` F
 END$$
 
 CREATE TRIGGER `trg_room_reservation_cancel_setup` AFTER UPDATE ON `Room_reservation` FOR EACH ROW BEGIN
-    IF OLD.status <> 'Cancelled'
-       AND NEW.status = 'Cancelled' THEN
+    IF OLD.status NOT IN ('Cancelled', 'No Show')
+       AND NEW.status IN ('Cancelled', 'No Show') THEN
 
         UPDATE `Room_setup_task`
            SET status = 'Cancelled'
          WHERE reservation_id = NEW.reservation_id
-           AND status = 'Open';
+            AND status IN ('Open', 'In Progress');
     END IF;
 END$$
 

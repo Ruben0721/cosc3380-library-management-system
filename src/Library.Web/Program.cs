@@ -5,6 +5,7 @@ using Project.Configuration;
 using System;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Project.Auth;
+using Project.Services;
 using System.Globalization;
 
 
@@ -110,6 +111,9 @@ builder.Services.AddDbContext<LibraryDbContext>(options =>
         throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection using user secrets or environment variables. See README.md.");
     options.UseMySql(cs, ServerVersion.AutoDetect(cs));
 });
+
+builder.Services.AddScoped<NoShowProcessor>();
+builder.Services.AddHostedService<NoShowBackgroundService>();
 
 builder.Services.AddAuthorization(options =>
 {

@@ -78,7 +78,22 @@ CREATE TABLE `Hold` (
   KEY `fk_hold_item` (`ItemId`),
   CONSTRAINT `fk_hold_item` FOREIGN KEY (`ItemId`) REFERENCES `Inventory` (`Id`),
   CONSTRAINT `Hold_ibfk_1` FOREIGN KEY (`LibraryUserId`) REFERENCES `Libraryuser` (`LibraryUserId`),
-  CONSTRAINT `chk_hold_status` CHECK ((`Status` in (_utf8mb4'Pending',_utf8mb4'Ready',_utf8mb4'Fulfilled',_utf8mb4'Cancelled',_utf8mb4'Expired')))
+	CONSTRAINT `chk_hold_status` CHECK ((`Status` in (_utf8mb4'Pending',_utf8mb4'Ready',_utf8mb4'Fulfilled',_utf8mb4'Cancelled',_utf8mb4'Expired',_utf8mb4'No Show')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `Notification` (
+  `NotificationId` bigint NOT NULL AUTO_INCREMENT,
+  `LibraryUserId` int NOT NULL,
+  `NotificationType` varchar(50) NOT NULL,
+  `RelatedId` varchar(20) NOT NULL,
+  `Title` varchar(200) NOT NULL,
+  `Message` varchar(500) NOT NULL,
+  `CreatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`ReadAt` datetime DEFAULT NULL,
+  PRIMARY KEY (`NotificationId`),
+  UNIQUE KEY `uq_notification_recipient_event` (`LibraryUserId`,`NotificationType`,`RelatedId`),
+  KEY `ix_notification_user_created` (`LibraryUserId`,`CreatedAt`),
+  CONSTRAINT `fk_notification_user` FOREIGN KEY (`LibraryUserId`) REFERENCES `Libraryuser` (`LibraryUserId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `Inventory` (
@@ -104,6 +119,7 @@ CREATE TABLE `Laptops` (
 CREATE TABLE `Libraryuser` (
   `LibraryUserId` int NOT NULL AUTO_INCREMENT,
   `IsActive` bit(1) NOT NULL,
+	`RoomReservationRestricted` bit(1) NOT NULL DEFAULT b'0',
   `UserStatus` varchar(30) DEFAULT NULL,
   `FirstName` varchar(30) NOT NULL,
   `LastName` varchar(30) NOT NULL,
@@ -227,7 +243,7 @@ CREATE TABLE `Room_reservation` (
   CONSTRAINT `fk_room_reservation_user` FOREIGN KEY (`LibraryUserId`) REFERENCES `Libraryuser` (`LibraryUserId`),
   CONSTRAINT `Room_reservation_ibfk_1` FOREIGN KEY (`room_id`) REFERENCES `Room` (`room_id`),
   CONSTRAINT `check_min_people` CHECK ((`num_of_people` >= 1)),
-  CONSTRAINT `check_reservation_status` CHECK ((`status` in (_utf8mb4'Confirmed',_utf8mb4'Cancelled',_utf8mb4'Completed')))
+	CONSTRAINT `check_reservation_status` CHECK ((`status` in (_utf8mb4'Confirmed',_utf8mb4'Checked In',_utf8mb4'Cancelled',_utf8mb4'Completed',_utf8mb4'No Show')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `Room_setup_task` (

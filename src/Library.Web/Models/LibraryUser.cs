@@ -20,4 +20,5 @@ public class LibraryUser
     [StringLength(20)] public string? PostalCode { get; set; }
     public bool IsActive { get; set; }
     [StringLength(30)] public string? UserStatus { get; set; }
+    public bool RoomReservationRestricted { get; set; }
 }

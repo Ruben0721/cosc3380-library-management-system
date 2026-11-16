@@ -26,7 +26,8 @@ public class RoomsModel : PageModel
 
         var reservations = await _db.RoomReservations
             .AsNoTracking()
-            .Where(reservation => reservation.Status == "Confirmed"
+            .Where(reservation => (reservation.Status == "Confirmed"
+                                || reservation.Status == "Checked In")
                                && reservation.EndTime >= now)
             .OrderBy(reservation => reservation.StartTime)
             .Select(reservation => new RoomReservationPeriod(

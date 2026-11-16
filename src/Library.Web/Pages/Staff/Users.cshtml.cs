@@ -62,6 +62,7 @@ namespace Project.Pages.Staff
             public int LibraryUserId { get; set; }
             public string FullName { get; set; } = "";
             public bool BorrowerIsActive { get; set; }
+            public bool RoomReservationRestricted { get; set; }
             public int? AccountId { get; set; }
             public string? Email { get; set; }
             public string? Role { get; set; }
@@ -101,6 +102,7 @@ namespace Project.Pages.Staff
                     LibraryUserId = borrower.LibraryUserId,
                     FullName = borrower.FullName,
                     BorrowerIsActive = borrower.IsActive,
+                    RoomReservationRestricted = borrower.RoomReservationRestricted,
                     AccountId = account == null
                         ? null
                         : (int?)account.AccountId,
@@ -323,6 +325,40 @@ namespace Project.Pages.Staff
                 ErrorMessage =
                     "The change could not be confirmed. Refresh the page " +
                     "to check the current status before trying again.";
+            }
+
+            return RedirectToPage(new { Search, MemberType, Login });
+        }
+
+        public async Task<IActionResult> OnPostClearRoomReservationRestrictionAsync(
+            int libraryUserId)
+        {
+            if (!ModelState.IsValid || libraryUserId <= 0)
+                return BadRequest();
+
+            try
+            {
+                int changed = await _db.LibraryUsers
+                    .Where(b => b.LibraryUserId == libraryUserId)
+                    .Where(b => !_db.StaffMembers.Any(s => s.LibraryUserId == b.LibraryUserId))
+                    .Where(b => b.RoomReservationRestricted)
+                    .ExecuteUpdateAsync(updates => updates
+                        .SetProperty(b => b.RoomReservationRestricted, false));
+
+                if (changed == 1)
+                    StatusMessage = "Room reservation restriction cleared.";
+                else
+                    ErrorMessage = "No room reservation restriction was cleared. The borrower may already be unrestricted, no longer exist, or be protected.";
+            }
+            catch (DbException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Unable to clear room reservation restriction for {LibraryUserId}.",
+                    libraryUserId);
+
+                ErrorMessage =
+                    "The room reservation restriction could not be cleared. Refresh the page and try again.";
             }
 
             return RedirectToPage(new { Search, MemberType, Login });
