@@ -43,7 +43,11 @@ namespace Project.Pages
             .Include(i => i.Media)
             .AsQueryable();
 
-        if (!string.IsNullOrEmpty(SelectedType))
+            if (!User.IsInRole("Admin") && !User.IsInRole("Staff"))
+            {
+                query = query.Where(i => i.Status != "Under Repair" && i.Status != "Lost");
+            }
+                if (!string.IsNullOrEmpty(SelectedType))
             query = query.Where(i => i.Type == SelectedType);
 
         if (!string.IsNullOrEmpty(SearchTerm))
