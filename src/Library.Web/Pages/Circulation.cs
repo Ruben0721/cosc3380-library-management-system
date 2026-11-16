@@ -60,7 +60,7 @@ namespace Project.Pages
                 .ToListAsync();
             if (expired.Count == 0) return;
 
-            foreach (var h in expired) h.Status = "Expired";
+            foreach (var h in expired) h.Status = "No Show";
             await db.SaveChangesAsync();
 
             foreach (var itemId in expired.Where(h => h.ItemId != null).Select(h => h.ItemId!.Value).Distinct())

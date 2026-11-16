@@ -42,6 +42,12 @@
 					</select>
 					<span asp-validation-for="Input.ReserveForLibraryUserId" class="text-danger"></span>
 				</div>
+				<div class="col-md-4 d-flex align-items-end">
+					<div class="form-check mb-2">
+						<input asp-for="Input.OverrideRoomReservationRestriction" class="form-check-input" />
+						<label asp-for="Input.OverrideRoomReservationRestriction" class="form-check-label"></label>
+					</div>
+				</div>
 			}
 
 			<div class="col-md-4">
@@ -125,6 +131,13 @@
 							}
 							<td>@reservation.Status</td>
 							<td>
+								@if (Model.CanCheckIn(reservation))
+								{
+									<form method="post" asp-page-handler="CheckIn" class="mb-1">
+										<input type="hidden" name="reservationId" value="@reservation.ReservationId" />
+										<button type="submit" class="btn btn-sm btn-success">Check in</button>
+									</form>
+								}
 								@if (reservation.Status == "Confirmed")
 								{
 									<form method="post" asp-page-handler="Cancel"

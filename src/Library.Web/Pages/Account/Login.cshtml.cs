@@ -50,7 +50,7 @@ namespace Project.Pages.Account
         {
             if (User.Identity?.IsAuthenticated == true)
             {
-                return RedirectToPage("/Search");
+                return RedirectToPage("/Index");
             }
 
             return Page();
@@ -60,7 +60,7 @@ namespace Project.Pages.Account
         {
             if (User.Identity?.IsAuthenticated == true)
             {
-                return RedirectToPage("/Search");
+                return RedirectToPage("/Index");
             }
 
             if (!ModelState.IsValid)

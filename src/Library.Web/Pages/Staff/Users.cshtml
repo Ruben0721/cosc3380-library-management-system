@@ -106,6 +106,7 @@ else
                     <th scope="col">Name</th>
                     <th scope="col">Member type</th>
                     <th scope="col">Borrower status</th>
+                        <th scope="col">Room reservations</th>
                     <th scope="col">Website login</th>
                     <th scope="col" class="text-end">Actions</th>
                 </tr>
@@ -127,6 +128,17 @@ else
                             else
                             {
                                 <span class="pill pill-off">Inactive</span>
+                            }
+                        </td>
+
+                        <td>
+                            @if (b.RoomReservationRestricted)
+                            {
+                                <span class="pill pill-off">Restricted</span>
+                            }
+                            else
+                            {
+                                <span class="pill pill-ok">Allowed</span>
                             }
                         </td>
 
@@ -194,6 +206,19 @@ else
                                             @(b.BorrowerIsActive ? "Deactivate" : "Activate")
                                         </button>
                                     </form>
+
+                                    @if (b.RoomReservationRestricted)
+                                    {
+                                        <form method="post" asp-page-handler="ClearRoomReservationRestriction">
+                                            <input type="hidden" name="libraryUserId" value="@b.LibraryUserId" />
+                                            <input type="hidden" name="Search" value="@Model.Search" />
+                                            <input type="hidden" name="MemberType" value="@Model.MemberType" />
+                                            <input type="hidden" name="Login" value="@Model.Login" />
+                                            <button type="submit" class="btn btn-sm btn-outline-warning">
+                                                Clear room restriction
+                                            </button>
+                                        </form>
+                                    }
                                 </div>
                             }
                         </td>

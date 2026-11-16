@@ -27,6 +27,7 @@ namespace Project.Data
         public DbSet<RoomReservation> RoomReservations => Set<RoomReservation>();
         public DbSet<RoomSetupTask> RoomSetupTasks => Set<RoomSetupTask>();
         public DbSet<ReadingListItem> ReadingList => Set<ReadingListItem>();
+        public DbSet<Notification> Notifications => Set<Notification>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,6 +68,7 @@ namespace Project.Data
             modelBuilder.Entity<Room>().ToTable("Room");
             modelBuilder.Entity<RoomReservation>().ToTable("Room_reservation");
             modelBuilder.Entity<RoomSetupTask>().ToTable("Room_setup_task");
+            modelBuilder.Entity<Notification>().ToTable("Notification");
 
             modelBuilder.Entity<RoomReservation>()
                 .HasOne(r => r.Room)

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Project.Data;
 using Project.Models;
+using Project.Services;
 
 namespace Project.Pages;
 
@@ -13,8 +14,13 @@ namespace Project.Pages;
 public class RoomReservationsModel : PageModel
 {
     private readonly LibraryDbContext _db;
+    private readonly NoShowProcessor _noShowProcessor;
 
-    public RoomReservationsModel(LibraryDbContext db) => _db = db;
+    public RoomReservationsModel(LibraryDbContext db, NoShowProcessor noShowProcessor)
+    {
+        _db = db;
+        _noShowProcessor = noShowProcessor;
+    }
 
     public class ReservationInput
     {
@@ -39,6 +45,9 @@ public class RoomReservationsModel : PageModel
 
         [Display(Name = "Reserve for")]
         public int? ReserveForLibraryUserId { get; set; }
+
+        [Display(Name = "Override room reservation restriction")]
+        public bool OverrideRoomReservationRestriction { get; set; }
     }
 
     public record RoomOption(string RoomId, int Capacity, string? Status);
@@ -102,6 +111,31 @@ public class RoomReservationsModel : PageModel
                 reservationOwnerId = Input.ReserveForLibraryUserId.Value;
         }
 
+        var reservationOwner = await _db.LibraryUsers
+            .SingleOrDefaultAsync(u => u.LibraryUserId == reservationOwnerId && u.IsActive);
+
+        if (reservationOwner == null)
+            return Forbid();
+
+        var noShowWindowStart = DateTime.Now.AddDays(-90);
+        var recentRoomNoShows = await _db.RoomReservations
+            .CountAsync(r => r.LibraryUserId == reservationOwnerId
+                         && r.Status == "No Show"
+                         && r.StartTime >= noShowWindowStart);
+
+        if (recentRoomNoShows >= 3 && !reservationOwner.RoomReservationRestricted)
+        {
+            reservationOwner.RoomReservationRestricted = true;
+            await _db.SaveChangesAsync();
+        }
+
+        if (reservationOwner.RoomReservationRestricted &&
+            (!IsStaff || !Input.OverrideRoomReservationRestriction))
+        {
+            ModelState.AddModelError(string.Empty,
+                "Room reservations are restricted for this account after three room no-shows in the last 90 days. Contact library staff for assistance.");
+        }
+
         if (!ModelState.IsValid)
         {
             await LoadReservationsAsync();
@@ -136,6 +170,61 @@ public class RoomReservationsModel : PageModel
             await LoadReservationsAsync();
             return Page();
         }
+    }
+
+    public async Task<IActionResult> OnPostCheckInAsync(string reservationId)
+    {
+        await _noShowProcessor.ProcessAsync(DateTime.Now);
+
+        var libraryUserId = await GetCurrentLibraryUserIdAsync();
+        if (libraryUserId == null)
+            return Forbid();
+
+        var reservation = await _db.RoomReservations
+            .SingleOrDefaultAsync(r => r.ReservationId == reservationId);
+
+        if (reservation == null)
+            return NotFound();
+
+        if (!IsStaff && reservation.LibraryUserId != libraryUserId.Value)
+            return Forbid();
+
+        var now = DateTime.Now;
+        var checkInOpensAt = reservation.StartTime.AddMinutes(-30);
+        var checkInClosesAt = reservation.StartTime.AddMinutes(30);
+
+        if (reservation.Status != "Confirmed")
+        {
+            TempData["Error"] = "Only confirmed reservations can be checked in.";
+            return RedirectToPage();
+        }
+
+        if (now < checkInOpensAt)
+        {
+            TempData["Error"] = $"Check-in opens at {checkInOpensAt:MMM d, yyyy h:mm tt}.";
+            return RedirectToPage();
+        }
+
+        if (now >= checkInClosesAt || now >= reservation.EndTime)
+        {
+            TempData["Error"] = "The check-in window has closed. The reservation may be marked no-show.";
+            return RedirectToPage();
+        }
+
+        reservation.Status = "Checked In";
+        await _db.SaveChangesAsync();
+
+        TempData["Message"] = $"Checked in for room {reservation.RoomId}.";
+        return RedirectToPage();
+    }
+
+    public bool CanCheckIn(ReservationRow reservation)
+    {
+        var now = DateTime.Now;
+        return reservation.Status == "Confirmed"
+            && now >= reservation.StartTime.AddMinutes(-30)
+            && now < reservation.StartTime.AddMinutes(30)
+            && now < reservation.EndTime;
     }
 
     public async Task<IActionResult> OnPostCancelAsync(string reservationId)
