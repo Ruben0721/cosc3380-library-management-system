@@ -4,19 +4,33 @@ COSC 3380 team project using ASP.NET Core Razor Pages, Entity Framework Core, an
 
 ## Repository layout
 
-- `Library.sln`: Visual Studio solution.
-- `src/Library.Web/`: C# web application (UI and backend together).
-  - `Pages/`: Razor pages and their request handlers.
-  - `Pages/Shared/`: shared layouts and partial views.
-  - `Models/`: database entities. Existing entity names are retained to avoid unintended database mapping changes.
-  - `Data/`: Entity Framework database context.
-  - `Configuration/`: shared item types and statuses.
-  - `Auth/`: authentication and account access rules.
-  - `wwwroot/`: application CSS, JavaScript, and vendor assets.
-- `frontend/`: standalone HTML homepage prototype; currently separate from the C# app.
-- `database/`: database scripts (currently incomplete).
-- `docs/`: project documentation.
-- `screenshots/`: project screenshots.
+```text
+.
+├── Library.sln
+├── global.json                 .NET SDK selection
+├── Dockerfile                  container build for the active web app
+├── database/                   MySQL schema, queries, reports, triggers, and migrations
+├── docs/                       deployment and project documentation
+├── screenshots/                project screenshots
+├── src/
+│   └── Library.Web/            active ASP.NET Core Razor Pages application
+│       ├── Auth/               authentication and account access rules
+│       ├── Configuration/      application options and shared configuration
+│       ├── Data/               Entity Framework Core database context
+│       ├── Models/             database entities and domain models
+│       ├── Pages/              Razor pages, page models, layouts, and partials
+│       ├── Properties/         local launch settings
+│       ├── Services/           hosted and application services
+│       └── wwwroot/            CSS, JavaScript, images, and vendor assets
+├── tests/
+│   └── Library.AuthChecks/     standalone authentication and validation checks
+├── backend/                    legacy backend files retained for reference
+└── Website/                    legacy website files retained for reference
+```
+
+The active solution contains `src/Library.Web/Project.csproj`. The `backend/` and
+`Website/` directories are not used by the current application; use the project
+under `src/Library.Web/` for development and deployment.
 
 ## Run the C# application
 
@@ -37,13 +51,17 @@ User secrets are loaded in Development. In hosting, set the environment variable
 
 ## Database status
 
-`database/schema.sql` currently defines only Student. It cannot recreate the complete database expected by the application. Obtain the team's complete schema before setting up a new database; the query/report/trigger files are placeholders.
+`database/schema.sql` contains the table definitions required by the application.
+Additional SQL files contain queries, reports, triggers, and migrations. Apply the
+base schema to a new MySQL database, then apply the relevant migration scripts in
+`database/migrations/` once. The application connects to MySQL through
+`LibraryDbContext`.
 
-## Frontend prototype and deployment
+## Deployment
 
-The files under `frontend/` are a standalone prototype. Its catalog, login, and signup pages are placeholders and do not connect to Razor Pages authentication or MySQL. The C# app has those features under `/Search`, `/Account/Login`, and `/Account/Register`.
-
-This cleanup leaves `frontend/` in place so its existing deployment path remains valid. Any C# hosting configuration or local tooling referring to `Website/Project/Project` must use `src/Library.Web` instead.
+The root `Dockerfile` builds and publishes `src/Library.Web/Project.csproj` for
+container hosting. Any C# hosting configuration or local tooling referring to
+`Website/Project/Project` must use `src/Library.Web` instead.
 
 ## Naming conventions
 
