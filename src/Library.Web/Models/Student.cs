@@ -12,7 +12,7 @@ public class Student
     [Column("Registration_Date")] public DateTime RegistrationDate { get; set; }
     [Column(TypeName = "date")] public DateTime? DateOfBirth { get; set; }
     public int? RentalLimit { get; set; } = 5;
-    public int? WaitlistLimit { get; set; }
+    public int? WaitlistLimit { get; set; } = 3;
     public string? AcademicLevel { get; set; }
     public string? EnrollStatus { get; set; }
 }
